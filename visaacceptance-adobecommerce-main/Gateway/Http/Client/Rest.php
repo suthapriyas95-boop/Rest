@@ -168,6 +168,16 @@ class Rest implements ClientInterface
  
         $this->client->setMethod($requestMethod);
         $this->client->setUri($endpointUrl);
+
+        // Temporary debug: if this is a payments request, log the raw payload
+        // (unmasked) to help diagnose missing paymentInformation fields.
+        if (strpos($requestPath, '/pts/v2/payments') !== false || strpos($endpointUrl, '/pts/v2/payments') !== false) {
+            try {
+                $this->logger->debug(['raw_request_unmasked' => $payload, 'endpoint' => $endpointUrl]);
+            } catch (\Exception $e) {
+                // swallow logging errors to avoid breaking payment flow
+            }
+        }
  
         // Keys to mask in both request and response logs
         $keysToMask = [

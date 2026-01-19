@@ -20,7 +20,13 @@ define([
                 if (method === self.methodCode) {
                     // intercept submitOrder.cybersource which is already bound
                     // replace it to launch UC before submitting
-                    // rely on existing Cybersource.submitAdminOrder flow
+                    jQuery('#edit_form')
+                        .off('submitOrder.cybersource')
+                        .on('submitOrder.cybersource', function (e) {
+                            e.preventDefault();
+                            // Launch Unified Checkout and submit when ready
+                            self.launchUCAndSubmit();
+                        });
                 }
             });
         },
