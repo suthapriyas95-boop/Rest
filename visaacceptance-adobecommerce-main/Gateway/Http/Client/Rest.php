@@ -169,9 +169,17 @@ class Rest implements ClientInterface
         $this->client->setMethod($requestMethod);
         $this->client->setUri($endpointUrl);
 
-        // Temporary debug: if this is a payments request, log the raw payload
-        // (unmasked) to help diagnose missing paymentInformation fields.
+        // Temporary debug: if this is a payments request or payment-details request,
+        // log the raw payload (unmasked) to help diagnose missing paymentInformation fields.
+        $shouldLogUnmasked = false;
         if (strpos($requestPath, '/pts/v2/payments') !== false || strpos($endpointUrl, '/pts/v2/payments') !== false) {
+            $shouldLogUnmasked = true;
+        }
+        if (strpos($requestPath, '/up/v1/payment-details') !== false || strpos($endpointUrl, '/up/v1/payment-details') !== false) {
+            $shouldLogUnmasked = true;
+        }
+
+        if ($shouldLogUnmasked) {
             try {
                 $this->logger->debug(['raw_request_unmasked' => $payload, 'endpoint' => $endpointUrl]);
             } catch (\Exception $e) {
@@ -247,6 +255,16 @@ class Rest implements ClientInterface
             // Mask the response before logging
             $maskedResponse = $this->maskSensitiveData((array)$response, $keysToMask);
             $log['response'] = $maskedResponse;
+
+            // If this was a payment-details or payments call, also include the unmasked
+            // response body to help debug missing fields (temporary).
+            try {
+                if ($shouldLogUnmasked) {
+                    $log['raw_response_unmasked'] = (array)$response;
+                }
+            } catch (\Exception $e) {
+                // ignore
+            }
  
             $this->logger->debug($log);
         }

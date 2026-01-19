@@ -1,7 +1,15 @@
 <?xml version="1.0"?>
-<!-- Preload Unified Checkout admin JS on Create Order page -->
+<!-- Preload CyberSource payment template and Unified Checkout admin JS on Admin Create Order page -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <head>
         <script src="CyberSource_Payment::js/unified-checkout-admin.js"/>
     </head>
+    <body>
+        <referenceBlock name="order_create_billing_method_form">
+            <action method="setMethodFormTemplate">
+                <argument name="method" xsi:type="string">unifiedcheckout</argument>
+                <argument name="template" xsi:type="string">CyberSource_Payment::cybersource/info.phtml</argument>
+            </action>
+        </referenceBlock>
+    </body>
 </page>
