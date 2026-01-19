@@ -26,7 +26,11 @@ define([
                             e.preventDefault();
                             // If transient already collected, submit immediately
                             if (window.__cybersource_transient_ready) {
-                                order._realSubmit();
+                                if (window.order && typeof order._realSubmit === 'function') {
+                                    order._realSubmit();
+                                } else {
+                                    console.error('[UC Admin] order._realSubmit is not available');
+                                }
                                 return;
                             }
                             // Launch Unified Checkout and submit when ready
@@ -67,14 +71,24 @@ define([
             jQuery.post(this.captureContextUrl, {})
                 .done(function (response) {
                     console.log('[UC Admin] capture context response received', response);
-                    var library_url = response.unified_checkout_client_library;
-                    var cc = response.captureContext;
+                    var library_url = response && response.unified_checkout_client_library;
+                    var cc = response && response.captureContext;
+                    if (!library_url || !cc) {
+                        console.error('[UC Admin] capture context response missing data', response);
+                        alert('Unable to initialize Unified Checkout.');
+                        return;
+                    }
                     // load library dynamically
                     require.config({
                         map: { '*': { uc: library_url } }
                     });
                     require(['uc'], function (uc) {
                         console.log('[UC Admin] UC library loaded from', library_url);
+                        if (!uc || !uc.Accept) {
+                            console.error('[UC Admin] UC library missing Accept');
+                            alert('Unable to load Unified Checkout library.');
+                            return;
+                        }
                         uc.Accept(cc).then(function (accept) {
                             console.log('[UC Admin] UC Accept resolved');
                             return accept.unifiedPayments(false);
@@ -108,7 +122,11 @@ define([
                                     // mark transient as ready for later submit
                                     window.__cybersource_transient_ready = true;
                                     if (submitAfter) {
-                                        order._realSubmit();
+                                        if (window.order && typeof order._realSubmit === 'function') {
+                                            order._realSubmit();
+                                        } else {
+                                            console.error('[UC Admin] order._realSubmit is not available');
+                                        }
                                     }
                                 })
                                 .fail(function () {
