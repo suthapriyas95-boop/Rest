@@ -37,11 +37,12 @@ $tokens = $helper->getTokens($method->getStore());
 </fieldset>
 <script>
     require([
-        'jquery',
+        'prototype',
         'Magento_Sales/order/create/scripts',
-        'Magento_Sales/order/create/form',
-        'CyberSource_Payment/js/cybersource'
-    ], function($){
+        "Magento_Sales/order/create/form",
+        'CyberSource_Payment/js/cybersource',
+        'CyberSource_Payment/js/unified-checkout-admin'
+    ], function(){
         var visaacceptance = new Cybersource(
             '<?php /* @noEscape */ echo $code; ?>',
             '<?php /* @noEscape */ echo $controller; ?>',
@@ -49,5 +50,14 @@ $tokens = $helper->getTokens($method->getStore());
             '<?php echo $block->escapeUrl($block->getUrl('*/*/save', [
                 '_secure' => $block->getRequest()->isSecure()
             ]));?>');
+
+        require(['CyberSource_Payment/js/unified-checkout-admin'], function (UCAdmin) {
+            UCAdmin({
+                captureContextUrl: '<?php echo $block->getUrl('cybersourceadmin/capturecontextrequest'); ?>',
+                transientUrl: '<?php echo $block->getUrl('cybersourceadmin/transientdataretrival'); ?>',
+                payerAuthUrl: '<?php echo $block->getUrl('cybersourceadmin/pasetup'); ?>',
+                methodCode: '<?php /* @noEscape */ echo $code; ?>'
+            });
+        });
     });
 </script>

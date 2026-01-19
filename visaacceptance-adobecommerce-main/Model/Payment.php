@@ -51,7 +51,7 @@ class Payment extends \Magento\Payment\Model\Method\AbstractMethod
     /**
      * @var bool
      */
-    protected $canUseInternal              = false;
+    protected $canUseInternal              = true;
 
     /**
      * @var array
@@ -67,6 +67,11 @@ class Payment extends \Magento\Payment\Model\Method\AbstractMethod
      * @var \Magento\Checkout\Model\Session
      */
     protected $checkoutSession;
+
+    /**
+     * @var \Magento\Payment\Gateway\Command\CommandManagerInterface
+     */
+    protected $commandManager;
 
     /**
      * Payment constructor.
@@ -90,6 +95,7 @@ class Payment extends \Magento\Payment\Model\Method\AbstractMethod
         \Magento\Payment\Helper\Data $paymentData,
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Payment\Model\Method\Logger $logger,
+        \Magento\Payment\Gateway\Command\CommandManagerInterface $commandManager,
         Session $checkoutSession,
         array $data = [],
         ?\Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
@@ -108,6 +114,49 @@ class Payment extends \Magento\Payment\Model\Method\AbstractMethod
             $data
         );
         $this->checkoutSession = $checkoutSession;
+        $this->commandManager = $commandManager;
+    }
+
+    /**
+     * Assign additional data to payment info (imports additional_data array)
+     *
+     * @param \Magento\Framework\DataObject $data
+     * @return $this
+     */
+    public function assignData(\Magento\Framework\DataObject $data)
+    {
+        $additionalData = $data->getData('additional_data') ?: $data->getAdditionalData();
+        $info = $this->getInfoInstance();
+        if (is_array($additionalData)) {
+            foreach ($additionalData as $key => $value) {
+                if ($key === 'cvv') {
+                    continue;
+                }
+                $info->setAdditionalInformation($key, $value);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Authorize payment by delegating to the gateway command pool
+     *
+     * @param \Magento\Payment\Model\InfoInterface $payment
+     * @param float $amount
+     * @return $this
+     * @throws LocalizedException
+     */
+    public function authorize(\Magento\Payment\Model\InfoInterface $payment, $amount)
+    {
+        try {
+            if ($this->commandManager) {
+                $this->commandManager->executeByCode('authorize', $payment);
+            }
+            return $this;
+        } catch (\Exception $e) {
+            throw new LocalizedException(__('Payment authorization failed.'));
+        }
     }
 
     /**

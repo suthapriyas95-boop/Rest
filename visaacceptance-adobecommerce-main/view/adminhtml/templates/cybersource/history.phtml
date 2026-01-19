@@ -120,10 +120,8 @@
     <?php endforeach; ?>
     </ul>
     <?php $scriptString = <<<script
-        require(['jquery'], function($){
-            if ($('#order_status').length) {
-                $('#order_status').text('{$block->escapeJs($block->getOrder()->getStatusLabel())}');
-            }
+        require(['prototype'], function(){
+            if($('order_status'))$('order_status').update('{$block->escapeJs($block->getOrder()->getStatusLabel())}');
         });
 script;
     ?>

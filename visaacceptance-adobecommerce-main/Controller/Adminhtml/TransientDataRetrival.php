@@ -1,19 +1,14 @@
 <?php
-/**
- * Copyright © 2018 CyberSource. All rights reserved.
- * See accompanying LICENSE.txt for applicable terms of use and license.
- */
+
 declare(strict_types=1);
+
 namespace CyberSource\Payment\Controller\Adminhtml;
 
-use Magento\Backend\App\Action;
-use Magento\Backend\App\Action\Context;
-use Magento\Backend\Model\Session\Quote as SessionQuote;
 use Magento\Quote\Api\Data\PaymentInterface;
 use CyberSource\Payment\Model\Ui\ConfigProvider;
 use Magento\Framework\Url\DecoderInterface;
 
-class TransientDataRetrival extends Action
+class TransientDataRetrival extends \Magento\Backend\App\Action
 {
     public const COMMAND_CODE = 'get_token_detail';
     public const CODE = 'authorize';
@@ -21,59 +16,25 @@ class TransientDataRetrival extends Action
     public const PAYER_AUTH_SANDBOX_URL = 'https://centinelapistag.cardinalcommerce.com';
     public const PAYER_AUTH_PROD_URL = 'https://centinelapi.cardinalcommerce.com';
 
-    /** @var \Magento\Framework\Controller\Result\JsonFactory */
     private $resultJsonFactory;
-
-    /** @var \Magento\Payment\Gateway\Command\CommandManagerInterface */
     private $commandManager;
-
-    /** @var \Magento\Framework\Session\SessionManagerInterface */
     private $sessionManager;
-
-    /** @var \CyberSource\Payment\Model\LoggerInterface */
     private $logger;
-
-    /** @var \Magento\Framework\Data\Form\FormKey\Validator */
     private $formKeyValidator;
-
-    /** @var \Magento\Quote\Model\QuoteRepository */
     private $quoteRepository;
-
-    /** @var \Magento\Checkout\Model\Session */
     private $checkoutSession;
-
-    /** @var \Magento\Quote\Model\QuoteManagement */
     private $quoteManagement;
-
-    /** @var \CyberSource\Payment\Model\Config */
     private $config;
-
-    /** @var \Magento\Framework\Event\ManagerInterface */
     private $eventManager;
-
-    /** @var \CyberSource\Payment\Model\Checkout\PaymentFailureRouteProviderInterface */
     private $paymentFailureRouteProvider;
-
-    /** @var \Magento\Framework\Session\StorageInterface */
     private $sessionStorage;
-
-    /** @var \Magento\Customer\Model\Session */
     public $customerSession;
-
-    /** @var \CyberSource\Payment\Controller\Frontend\PaSetup */
     private $paSetupCall;
-
-    /** @var \Magento\Quote\Api\CartRepositoryInterface */
     private $cartRepository;
-
-    /** @var DecoderInterface */
     protected $urlDecoder;
 
-    /** @var SessionQuote */
-    private $sessionQuote;
-
     public function __construct(
-        Context $context,
+        \Magento\Backend\App\Action\Context $context,
         \Magento\Payment\Gateway\Command\CommandManagerInterface $commandManager,
         \Magento\Framework\Session\SessionManagerInterface $sessionManager,
         \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory,
@@ -87,10 +48,9 @@ class TransientDataRetrival extends Action
         \CyberSource\Payment\Model\Checkout\PaymentFailureRouteProviderInterface $paymentFailureRouteProvider,
         \Magento\Framework\Session\StorageInterface $sessionStorage,
         \Magento\Customer\Model\Session $customerSession,
-        \CyberSource\Payment\Controller\Frontend\PaSetup $paSetupCall,
+        \CyberSource\Payment\Controller\Adminhtml\PaSetup $paSetupCall,
         \Magento\Quote\Api\CartRepositoryInterface $cartRepository,
-        DecoderInterface $urlDecoder,
-        SessionQuote $sessionQuote = null
+        DecoderInterface $urlDecoder
     ) {
         parent::__construct($context);
         $this->resultJsonFactory = $resultJsonFactory;
@@ -109,12 +69,8 @@ class TransientDataRetrival extends Action
         $this->paSetupCall = $paSetupCall;
         $this->cartRepository = $cartRepository;
         $this->urlDecoder = $urlDecoder;
-        $this->sessionQuote = $sessionQuote ?: $context->getObjectManager()->get(SessionQuote::class);
     }
 
-    /**
-     * Creates SA request JSON
-     */
     public function execute()
     {
         $result = $this->resultJsonFactory->create();
@@ -126,14 +82,17 @@ class TransientDataRetrival extends Action
             $this->sessionStorage->setData('browser_details', $browserDetails);
 
             $decoded_transient_token = json_decode($this->urlDecoder->decode(explode('.', $data)[1]), true);
-            $quote = $this->sessionQuote->getQuote();
-            $quote->getPayment()->setAdditionalInformation('paymentToken', base64_encode($data));
-            $this->sessionStorage->setData('paymentToken', base64_encode($data));
+            $quote = $this->checkoutSession->getQuote();
+            $quote->getPayment()->setAdditionalInformation("paymentToken", base64_encode($data));
+            $this->sessionStorage->setData("paymentToken", base64_encode($data));
             if (isset($decoded_transient_token['content']['processingInformation']['paymentSolution']['value'])) {
                 $paymentSolution = $decoded_transient_token['content']['processingInformation']['paymentSolution']['value'] ?? '';
                 $quote->getPayment()->setAdditionalInformation('paymentSolution', $paymentSolution);
             }
-            $commandResult = $this->commandManager->executeByCode(self::COMMAND_CODE, $quote->getPayment());
+            $commandResult = $this->commandManager->executeByCode(
+                self::COMMAND_CODE,
+                $quote->getPayment()
+            );
 
             $response = $commandResult->get();
             $expMonth = $response['paymentInformation']['card']['expirationMonth'] ?? null;
@@ -144,14 +103,19 @@ class TransientDataRetrival extends Action
             $quote->getPayment()->setAdditionalInformation('maskedPan', $maskedPan);
             $quote->getPayment()->setAdditionalInformation('expDate', "$expMonth-$expYear");
             $isRegisteredUser = $this->customerSession->isLoggedIn();
-            $quote->getPayment()->setAdditionalInformation(\\Magento\\Vault\\Model\\Ui\\VaultConfigProvider::IS_ACTIVE_CODE, (bool)false);
+            $quote->getPayment()->setAdditionalInformation(
+                \Magento\Vault\Model\Ui\VaultConfigProvider::IS_ACTIVE_CODE,
+                (bool)false
+            );
 
-            if ($vaultIsEnabled == "true" && !isset($decoded_transient_token['content']['processingInformation']['paymentSolution']) && $isRegisteredUser == "true") {
-                $quote->getPayment()->setAdditionalInformation(\\Magento\\Vault\\Model\\Ui\\VaultConfigProvider::IS_ACTIVE_CODE, (bool)$vaultIsEnabled);
+            if ($vaultIsEnabled == "true" && !isset($decoded_transient_token['content']['processingInformation']['paymentSolution']) && $isRegisteredUser == "true"){
+                $quote->getPayment()->setAdditionalInformation(
+                    \Magento\Vault\Model\Ui\VaultConfigProvider::IS_ACTIVE_CODE,
+                    (bool)$vaultIsEnabled
+                );
             }
 
-            $this->quoteRepository->save($quote);
-
+            $quote->save();
             if ($this->config->isPayerAuthEnabled() == true
                 && (!isset($decoded_transient_token['content']['processingInformation']['paymentSolution'])
                     || (isset($decoded_transient_token['content']['processingInformation']['paymentSolution'])
@@ -160,17 +124,18 @@ class TransientDataRetrival extends Action
                 )
             ) {
                 $payment = $quote->getPayment();
-                $data = [PaymentInterface::KEY_METHOD => $payment->getMethod() ?? ConfigProvider::CODE];
+                $data = [
+                    PaymentInterface::KEY_METHOD => $payment->getMethod() ?? ConfigProvider::CODE
+                ];
 
                 if ($method = $this->getRequest()->getParam('method')) {
                     $data[PaymentInterface::KEY_METHOD] = $method;
-                }
+                };
 
                 if ($additionalData = $this->getRequest()->getParam('additional_data')) {
                     unset($additionalData['cvv']);
                     $data['additional_data'] = $additionalData;
-                }
-
+                };
                 $SetUpResult = $this->commandManager->executeByCode(self::SET_UP, $quote->getPayment());
                 $this->cartRepository->save($quote);
 
@@ -181,8 +146,7 @@ class TransientDataRetrival extends Action
                     $SetUpResult->get()
                 ));
             } else {
-                // For admin flow, do not submit the order here. Persist payment info on admin quote and return success.
-                $this->logger->debug('Admin transient token processed; payment info stored on admin quote');
+                $this->logger->debug("inside else block");
 
                 $quote->setPaymentMethod(ConfigProvider::CODE);
                 $quote->setInventoryProcessed(false);
@@ -190,15 +154,37 @@ class TransientDataRetrival extends Action
                 $quote->collectTotals();
                 $this->quoteRepository->save($quote);
 
-                $resultData = [
-                    'status' => 200,
-                    'message' => 'Payment token processed and stored on admin quote',
-                    'redirect_url' => ''
-                ];
+                $this->checkoutSession->setLastSuccessQuoteId($quote->getId());
+                $this->checkoutSession->setLastQuoteId($quote->getId());
+                $this->checkoutSession->clearHelperData();
+
+                $order = $this->quoteManagement->submit($quote);
+                $this->eventManager->dispatch('cybersource_quote_submit_success', ['order' => $order, 'quote' => $quote]);
+
+                $this->checkoutSession->setLastOrderId($order->getId());
+                $this->checkoutSession->setLastRealOrderId($order->getIncrementId());
+                $this->checkoutSession->setLastOrderStatus($order->getStatus());
+
+                $successValidator = $this->_objectManager->get(\Magento\Checkout\Model\Session\SuccessValidator::class);
+
+                if (!$successValidator->isValid()) {
+                    $resultData = [
+                        'status' => 500,
+                        'message' => 'Unable to place order. Please try again.',
+                        'redirect_url' => $this->_url->getUrl($this->paymentFailureRouteProvider->getFailureRoutePath())
+                    ];
+                } else {
+                    $resultData = [
+                        'status' => 200,
+                        'message' => 'Your order has been created successfully.',
+                        'redirect_url' => $this->_url->getUrl('checkout/onepage/success')
+                    ];
+                }
 
                 $result->setData($resultData);
+                $this->quoteRepository->save($quote);
             }
-        } catch (\\Exception $e) {
+        } catch (\Exception $e) {
             $this->logger->critical($e->getMessage(), ['exception' => $e]);
             $resultData = [
                 'status' => 500,
@@ -209,15 +195,5 @@ class TransientDataRetrival extends Action
         }
 
         return $result;
-    }
-
-    /**
-     * ACL check for admin access
-     *
-     * @return bool
-     */
-    protected function _isAllowed()
-    {
-        return $this->_authorization->isAllowed('CyberSource_Payment::manage');
     }
 }

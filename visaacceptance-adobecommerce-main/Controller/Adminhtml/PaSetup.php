@@ -1,52 +1,30 @@
 <?php
-/**
- * Copyright © 2018 CyberSource. All rights reserved.
- * See accompanying LICENSE.txt for applicable terms of use and license.
- */
+
 declare(strict_types=1);
+
 namespace CyberSource\Payment\Controller\Adminhtml;
 
-use Magento\Backend\App\Action;
-use Magento\Backend\App\Action\Context;
-use Magento\Backend\Model\Session\Quote as SessionQuote;
 use CyberSource\Payment\Model\Ui\ConfigProvider;
 use Magento\Quote\Api\Data\PaymentInterface;
 
-class PaSetup extends Action
+class PaSetup extends \Magento\Backend\App\Action
 {
     public const COMMAND_CODE = 'payerauthSetup';
+
     public const PAYER_AUTH_SANDBOX_URL = 'https://centinelapistag.cardinalcommerce.com';
     public const PAYER_AUTH_PROD_URL = 'https://centinelapi.cardinalcommerce.com';
 
-    /** @var \Magento\Payment\Gateway\Command\CommandManagerInterface */
     private $commandManager;
-
-    /** @var \Magento\Framework\Controller\Result\JsonFactory */
     private $jsonFactory;
-
-    /** @var \Magento\Quote\Api\CartRepositoryInterface */
     private $cartRepository;
-
-    /** @var \CyberSource\Payment\Gateway\Helper\SubjectReader */
     private $subjectReader;
-
-    /** @var \Magento\Framework\Data\Form\FormKey\Validator */
     private $formKeyValidator;
-
-    /** @var \CyberSource\Payment\Model\LoggerInterface */
     private $logger;
-
-    /** @var SessionQuote */
-    private $sessionQuote;
-
-    /** @var \Magento\Framework\Session\StorageInterface */
     private $sessionStorage;
-
-    /** @var \Magento\Checkout\Model\Session */
     private $checkoutSession;
 
     public function __construct(
-        Context $context,
+        \Magento\Backend\App\Action\Context $context,
         \Magento\Payment\Gateway\Command\CommandManagerInterface $commandManager,
         \Magento\Quote\Api\CartRepositoryInterface $cartRepository,
         \Magento\Framework\Controller\Result\JsonFactory $jsonFactory,
@@ -54,8 +32,7 @@ class PaSetup extends Action
         \CyberSource\Payment\Model\LoggerInterface $logger,
         \Magento\Framework\Session\StorageInterface $sessionStorage,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \CyberSource\Payment\Gateway\Helper\SubjectReader $subjectReader,
-        SessionQuote $sessionQuote = null
+        \CyberSource\Payment\Gateway\Helper\SubjectReader $subjectReader
     ) {
         parent::__construct($context);
         $this->commandManager = $commandManager;
@@ -66,16 +43,12 @@ class PaSetup extends Action
         $this->sessionStorage = $sessionStorage;
         $this->checkoutSession = $checkoutSession;
         $this->subjectReader = $subjectReader;
-        $this->sessionQuote = $sessionQuote ?: $context->getObjectManager()->get(SessionQuote::class);
     }
 
-    /**
-     * Execute action based on request and return result
-     */
     public function execute()
     {
         $resultJson = $this->jsonFactory->create();
-        $quote = $this->sessionQuote->getQuote();
+        $quote = $this->checkoutSession->getQuote();
         try {
             if (!$this->getRequest()->isPost()) {
                 throw new \Magento\Framework\Exception\LocalizedException(__('Wrong method.'));
@@ -90,20 +63,25 @@ class PaSetup extends Action
             $browserDetails = $this->getRequest()->getParams();
             $this->sessionStorage->setData('browser_details', $browserDetails);
 
-            $data = [PaymentInterface::KEY_METHOD => $payment->getMethod() ?? ConfigProvider::CODE];
+            $data = [
+                PaymentInterface::KEY_METHOD => $payment->getMethod() ?? ConfigProvider::CODE
+            ];
 
             if ($method = $this->getRequest()->getParam('method')) {
                 $data[PaymentInterface::KEY_METHOD] = $method;
-            }
+            };
 
             if ($additionalData = $this->getRequest()->getParam('additional_data')) {
                 unset($additionalData['cvv']);
                 $data['additional_data'] = $additionalData;
-            }
+            };
 
             $payment->importData($data);
 
-            $tokenResult = $this->commandManager->executeByCode(self::COMMAND_CODE, $quote->getPayment());
+            $tokenResult = $this->commandManager->executeByCode(
+                self::COMMAND_CODE,
+                $quote->getPayment()
+            );
 
             $this->cartRepository->save($quote);
 
@@ -122,15 +100,5 @@ class PaSetup extends Action
         }
 
         return $resultJson;
-    }
-
-    /**
-     * ACL check for admin access
-     *
-     * @return bool
-     */
-    protected function _isAllowed()
-    {
-        return $this->_authorization->isAllowed('CyberSource_Payment::manage');
     }
 }

@@ -1,12 +1,9 @@
 <?php
-/**
- * Copyright © 2018 CyberSource. All rights reserved.
- * See accompanying LICENSE.txt for applicable terms of use and license.
- */
+
 declare(strict_types=1);
+
 namespace CyberSource\Payment\Controller\Adminhtml;
-use Magento\Framework\App\Action\Action;
-use Magento\Framework\App\Action\Context;
+
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
@@ -16,12 +13,8 @@ use CyberSource\Payment\Observer\SaveConfigObserver;
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactory as OrderCollectionFactory;
 use Magento\Sales\Model\ResourceModel\Order\Status\History\CollectionFactory as StatusHistoryCollectionFactory;
 use Magento\Framework\Controller\Result\JsonFactory;
-/**
- * Class WebhookDecisionManagerController
- *
- * Controller for handling webhook requests related to the Decision Manager.
- */
-class WebhookDecisionManagerController extends Action implements CsrfAwareActionInterface
+
+class WebhookDecisionManagerController extends \Magento\Backend\App\Action implements CsrfAwareActionInterface
 {
     private const HTTP_METHOD_POST = 'POST';
     private const HTTP_METHOD_GET = 'GET';
@@ -36,38 +29,19 @@ class WebhookDecisionManagerController extends Action implements CsrfAwareAction
     private const STATUS_CANCELLED = 'canceled';
     private const CODE_TWO_ZERO_ZERO = 200;
 
-    /** @var LoggerInterface */
     private LoggerInterface $logger;
-
-    /** @var Config */
     private Config $config;
-
-    /** @var SaveConfigObserver */
     private SaveConfigObserver $saveConfigObserver;
-
-    /** @var JsonFactory */
     private JsonFactory $resultJsonFactory;
-
-    /** @var OrderCollectionFactory */
     private OrderCollectionFactory $orderCollectionFactory;
-
-    /** @var StatusHistoryCollectionFactory */
     private $statusHistoryCollectionFactory;
-
-    /** @var \Magento\Checkout\Model\Session */
     private $checkoutSession;
-
-    /** @var \Magento\Sales\Model\OrderFactory */
     private $orderFactory;
-
-    /** @var \Magento\Framework\Session\StorageInterface */
     private $sessionStorage;
-
-    /** @var \Magento\Sales\Api\OrderRepositoryInterface */
     private $orderRepository;
 
     public function __construct(
-        Context $context,
+        \Magento\Backend\App\Action\Context $context,
         LoggerInterface $logger,
         Config $config,
         SaveConfigObserver $saveConfigObserver,
@@ -137,11 +111,7 @@ class WebhookDecisionManagerController extends Action implements CsrfAwareAction
             if ($this->isValidRequest($decisionManagerData, $merchantId, $webhookDetails)) {
                 $webhookDetails = $this->saveConfigObserver->queryWebhookDetails($merchantId);
                 if (!empty($webhookDetails)) {
-                    $notificationValidation = $this->notificationValidation(
-                        $headers->getFieldValue(),
-                        $payload,
-                        $webhookDetails
-                    );
+                    $notificationValidation = $this->notificationValidation($headers->getFieldValue(), $payload, $webhookDetails);
                     if ($notificationValidation === true) {
                         if ($this->isReferenceNumberValid($referenceNumber)) {
                             $this->processEventType($decisionManagerData, $referenceNumber, $result);
@@ -211,11 +181,7 @@ class WebhookDecisionManagerController extends Action implements CsrfAwareAction
             $this->logger->info('notes updated');
             $result->setData(['message' => 'notes updated']);
         } else {
-            $this->logger->error(
-                'Invalid event type: ' . $decisionManagerData->eventType .
-                ', expected: ' . self::EVENT_TYPE_ACCEPT . ' or ' .
-                self::EVENT_TYPE_REJECT . ' or ' . self::EVENT_TYPE_ADDNOTE
-            );
+            $this->logger->error('Invalid event type: ' . $decisionManagerData->eventType . ', expected: ' . self::EVENT_TYPE_ACCEPT . ' or ' . self::EVENT_TYPE_REJECT . ' or ' . self::EVENT_TYPE_ADDNOTE);
             $result->setData(['message' => 'Invalid event type']);
         }
         $result->setHttpResponseCode(self::CODE_TWO_ZERO_ZERO);
@@ -250,16 +216,14 @@ class WebhookDecisionManagerController extends Action implements CsrfAwareAction
 
     private function isReferenceNumberValid(string $referenceNumber): bool
     {
-        $orderCollection = $this->orderCollectionFactory->create()
-            ->addFieldToFilter('increment_id', $referenceNumber);
+        $orderCollection = $this->orderCollectionFactory->create()->addFieldToFilter('increment_id', $referenceNumber);
 
         return $orderCollection->getSize() > 0;
     }
 
     private function updateOrderStatus(string $referenceNumber, string $status): void
     {
-        $orderCollection = $this->orderCollectionFactory->create()
-            ->addFieldToFilter('increment_id', $referenceNumber);
+        $orderCollection = $this->orderCollectionFactory->create()->addFieldToFilter('increment_id', $referenceNumber);
 
         if ($orderCollection->getSize() > 0) {
             $order = $orderCollection->getFirstItem();
@@ -275,8 +239,7 @@ class WebhookDecisionManagerController extends Action implements CsrfAwareAction
     private function updateAdditionalInformation($referenceNumber, $comment): void
     {
         $order = $this->orderFactory->create()->loadByIncrementId($referenceNumber);
-        $orderCollection = $this->statusHistoryCollectionFactory->create()
-                        ->addFieldToFilter('parent_id', $order->getEntityId());
+        $orderCollection = $this->statusHistoryCollectionFactory->create()->addFieldToFilter('parent_id', $order->getEntityId());
 
         if ($orderCollection->getSize() > 0) {
             $order = $orderCollection->getFirstItem();
@@ -297,11 +260,7 @@ class WebhookDecisionManagerController extends Action implements CsrfAwareAction
         $response = false;
         if (!empty($digital_signature) && !empty($payload) && !empty($webhook_details)) {
             $signature_data = $this->splitSignature($digital_signature);
-            if (
-                isset($signature_data['time_stamp']) &&
-                isset($signature_data['key_id']) &&
-                isset($signature_data['signature'])
-            ) {
+            if (isset($signature_data['time_stamp']) && isset($signature_data['key_id']) && isset($signature_data['signature'])) {
                 $time_stamped_payload = $signature_data['time_stamp'] . "." . json_encode($payload, JSON_UNESCAPED_SLASHES);
                 $digital_signature_key = ($webhook_details['digital_signature_key_id'] === $signature_data['key_id']) ? $webhook_details['digital_signature_key'] : "null";
                 if (isset($digital_signature_key)) {

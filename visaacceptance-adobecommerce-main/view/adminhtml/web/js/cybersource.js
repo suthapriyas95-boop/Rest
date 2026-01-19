@@ -1,198 +1,202 @@
-define([
-    'jquery',
-    'mage/backend/validation'
-], function ($) {
-    'use strict';
-
-    function Cybersource(methodCode, controller, orderSaveUrl, nativeAction) {
-        var prepare = function (event, method) {
-            if (method === 'unifiedcheckout') {
-                this.preparePayment();
-            } else {
-                $('#edit_form').off('submitOrder.cybersource');
-            }
-        };
-
-        this.iframeId = 'iframeId';
-        this.controller = controller;
-        this.orderSaveUrl = orderSaveUrl;
-        this.nativeAction = nativeAction;
-        this.code = methodCode;
-        this.inputs = ['cc_type', 'cc_number', 'expiration', 'expiration_yr', 'cc_cid'];
-        this.headers = [];
-        this.isValid = true;
-        this.paymentRequestSent = false;
-        this.orderIncrementId = false;
-        this.successUrl = false;
-        this.hasError = false;
-        this.tmpForm = false;
-
-        this.onSubmitAdminOrder = this.submitAdminOrder.bind(this);
-
-        $('#edit_form').on('changePaymentMethod', prepare.bind(this));
-
-        $('#edit_form').trigger('changePaymentMethod', [$('#edit_form').find(':radio[name="payment[method]"]:checked').val()]);
+(function (factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(
+            [
+            "jquery",
+            "mage/backend/validation",
+            "prototype"
+            ],
+            factory
+        );
+    } else {
+        factory(jQuery);
     }
+}(function (jQuery) {
 
+    window.Cybersource = Class.create();
     Cybersource.prototype = {
-        validate: function () {
-            this.isValid = true;
-            this.inputs.forEach(function (elemIndex) {
-                var el = $('#' + this.code + '_' + elemIndex);
-                if (el.length) {
-                    if (typeof jQuery.validator !== 'undefined') {
-                        try {
-                            if (!jQuery.validator.validateElement(el[0])) {
-                                this.isValid = false;
-                            }
-                        } catch (e) {
-                            if (!el.val()) {
-                                this.isValid = false;
-                            }
-                        }
-                    } else if (!el.val()) {
-                        this.isValid = false;
-                    }
+        initialize : function (methodCode, controller, orderSaveUrl, nativeAction) {
+            var prepare = function (event, method) {
+                if (method === 'unifiedcheckout') {
+                    this.preparePayment();
+                } else {
+                    jQuery('#edit_form')
+                    .off('submitOrder.cybersource');
                 }
-            }.bind(this));
+            };
+            this.iframeId = 'iframeId';
+            this.controller = controller;
+            this.orderSaveUrl = orderSaveUrl;
+            this.nativeAction = nativeAction;
+            this.code = methodCode;
+            this.inputs = ['cc_type', 'cc_number', 'expiration', 'expiration_yr', 'cc_cid'];
+            this.headers = [];
+            this.isValid = true;
+            this.paymentRequestSent = false;
+            this.orderIncrementId = false;
+            this.successUrl = false;
+            this.hasError = false;
+            this.tmpForm = false;
+
+            this.onSubmitAdminOrder = this.submitAdminOrder.bindAsEventListener(this);
+
+            jQuery('#edit_form').on('changePaymentMethod', prepare.bind(this));
+
+            jQuery('#edit_form').trigger(
+                'changePaymentMethod',
+                [
+                jQuery('#edit_form').find(':radio[name="payment[method]"]:checked').val()
+                ]
+            );
+        },
+
+        validate : function () {
+            this.isValid = true;
+            this.inputs.each(
+                function (elemIndex) {
+                    if ($(this.code + '_' + elemIndex)) {
+                        if (!jQuery.validator.validateElement($(this.code + '_' + elemIndex))) {
+                            this.isValid = false;
+                        }
+                    }
+                },
+                this
+            );
 
             return this.isValid;
         },
 
-        changeInputOptions: function (param, value) {
-            this.inputs.forEach(function (elemIndex) {
-                var el = $('#' + this.code + '_' + elemIndex);
-                if (el.length) {
-                    el.attr(param, value);
-                }
-            }.bind(this));
+        changeInputOptions : function (param, value) {
+            this.inputs.each(
+                function (elemIndex) {
+                    if ($(this.code + '_' + elemIndex)) {
+                        $(this.code + '_' + elemIndex).writeAttribute(param, value);
+                    }
+                },
+                this
+            );
         },
 
-        preparePayment: function () {
+        preparePayment : function () {
             this.changeInputOptions('autocomplete', 'off');
-            $('#edit_form').off('submitOrder').on('submitOrder.cybersource', this.submitAdminOrder.bind(this));
+            jQuery('#edit_form')
+            .off('submitOrder')
+            .on('submitOrder.cybersource', this.submitAdminOrder.bind(this));
         },
 
-        showError: function (msg) {
+        showError : function (msg) {
             this.hasError = true;
             if (this.controller == 'onepage') {
                 this.resetLoadWaiting();
             }
-            alert('Error: ' + msg);
+            alert("Error: " + msg);
         },
 
-        returnQuote: function () {
+        returnQuote : function () {
             var url = this.orderSaveUrl.replace('place', 'returnQuote');
-            $.ajax({
-                url: url,
-                method: 'GET',
-                success: function (transport) {
-                    var response;
-                    try {
-                        response = (typeof transport === 'string') ? JSON.parse(transport) : transport;
-                    } catch (e) {
-                        response = {};
-                    }
+            new Ajax.Request(
+                url,
+                {
+                    onSuccess : function (transport) {
+                        try {
+                            response = transport.responseText.evalJSON(true);
+                        } catch (e) {
+                            response = {};
+                        }
 
-                    if (response.error_message) {
-                        alert('Quote error: ' + response.error_message);
-                    }
+                        if (response.error_message) {
+                            alert("Quote error: " + response.error_message);
+                        }
 
-                    this.changeInputOptions('disabled', false);
-                    $('body').trigger('processStop');
-                    if (typeof enableElements === 'function') {
+                        this.changeInputOptions('disabled', false);
+                        jQuery('body').trigger('processStop');
                         enableElements('save');
-                    }
-                }.bind(this)
-            });
+                    }.bind(this)
+                }
+            );
         },
 
-        setLoadWaiting: function () {
-            this.headers.forEach(function (header) {
-                $(header).removeClass('allow');
-            });
-            if (typeof checkout !== 'undefined' && typeof checkout.setLoadWaiting === 'function') {
-                checkout.setLoadWaiting('review');
-            }
+        setLoadWaiting : function () {
+            this.headers.each(
+                function (header) {
+                    header.removeClassName('allow');
+                }
+            );
+            checkout.setLoadWaiting('review');
         },
 
-        resetLoadWaiting: function () {
-            this.headers.forEach(function (header) {
-                $(header).addClass('allow');
-            });
-            if (typeof checkout !== 'undefined' && typeof checkout.setLoadWaiting === 'function') {
-                checkout.setLoadWaiting(false);
-            }
+        resetLoadWaiting : function () {
+            this.headers.each(
+                function (header) {
+                    header.addClassName('allow');
+                }
+            );
+            checkout.setLoadWaiting(false);
         },
 
-        submitAdminOrder: function () {
-            var editForm = $('#edit_form');
-            if (editForm.valid && editForm.valid()) {
-                var paymentMethodEl = editForm.find(':radio[name="payment[method]"]:checked');
+        submitAdminOrder : function () {
+            // Temporary solution will be removed after refactoring Authorize.Net (sales) functionality
+            var editForm = jQuery('#edit_form');
+            if (editForm.valid()) {
+                // Temporary solution will be removed after refactoring Authorize.Net (sales) functionality
+                paymentMethodEl = editForm.find(':radio[name="payment[method]"]:checked');
                 this.hasError = false;
                 if (paymentMethodEl.val() == this.code) {
-                    $('body').trigger('processStart');
-                    if (typeof setLoaderPosition === 'function') {
-                        setLoaderPosition();
-                    }
+                    jQuery('body').trigger('processStart');
+                    setLoaderPosition();
                     this.changeInputOptions('disabled', 'disabled');
                     this.paymentRequestSent = true;
                     this.orderRequestSent = true;
+                    // Temporary solutions will be removed after refactoring Authorize.Net (sales) functionality
                     editForm.attr('action', this.orderSaveUrl);
                     editForm.append(this.createHiddenElement('controller', this.controller));
-                    if (typeof disableElements === 'function') {
-                        disableElements('save');
-                    }
-                    if (typeof order !== 'undefined' && typeof order._realSubmit === 'function') {
-                        order._realSubmit();
-                    }
+                    disableElements('save');
+                    // Temporary solutions will be removed after refactoring Authorize.Net (sales) functionality
+                    order._realSubmit();
                 } else {
                     editForm.attr('action', this.nativeAction);
                     editForm.attr('target', '_top');
-                    if (typeof disableElements === 'function') {
-                        disableElements('save');
-                    }
-                    if (typeof order !== 'undefined' && typeof order._realSubmit === 'function') {
-                        order._realSubmit();
-                    }
+                    disableElements('save');
+                    // Temporary solutions will be removed after refactoring Authorize.Net (sales) functionality
+                    order._realSubmit();
                 }
             }
         },
 
-        recollectQuote: function () {
-            var area = ['sidebar', 'items', 'shipping_method', 'billing_method', 'totals', 'giftmessage'];
+        recollectQuote : function () {
+            var area = [ 'sidebar', 'items', 'shipping_method', 'billing_method', 'totals', 'giftmessage' ];
             area = order.prepareArea(area);
             var url = order.loadBaseUrl + 'block/' + area;
-            var info = $('#order-items_grid').find('input, select, textarea');
+            var info = $('order-items_grid').select('input', 'select', 'textarea');
             var data = {};
-            info.each(function () {
-                var el = $(this);
-                if (!el.prop('disabled') && (this.type !== 'checkbox' || el.prop('checked'))) {
-                    data[el.attr('name')] = el.val();
+            for (var i = 0; i < info.length; i++) {
+                if (!info[i].disabled && (info[i].type != 'checkbox' || info[i].checked)) {
+                    data[info[i].name] = info[i].getValue();
                 }
-            });
+            }
 
             data.reset_shipping = true;
             data.update_items = true;
-            if ($('#coupons\\:code').length && $('#coupons\\:code').val()) {
-                data['order[coupon][code]'] = $('#coupons\\:code').val();
+            if ($('coupons:code') && $F('coupons:code')) {
+                data['order[coupon][code]'] = $F('coupons:code');
             }
 
             data.json = true;
-            $.ajax({
-                url: url,
-                method: 'GET',
-                data: data,
-                success: function (transport) {
-                    $('#edit_form').submit();
-                }.bind(this)
-            });
+            new Ajax.Request(
+                url,
+                {
+                    parameters : data,
+                    loaderArea : 'html-body',
+                    onSuccess : function (transport) {
+                        jQuery('#edit_form').submit();
+                    }.bind(this)
+                }
+            );
         },
 
-        saveAdminOrderSuccess: function (data) {
-            var response;
+        saveAdminOrderSuccess : function (data) {
             try {
-                response = (typeof data === 'string') ? JSON.parse(data) : data;
+                response = data.evalJSON(true);
             } catch (e) {
                 response = {};
             }
@@ -204,25 +208,30 @@ define([
             if (response.error_messages) {
                 var msg = response.error_messages;
                 if (typeof (msg) == 'object') {
-                    msg = msg.join('\n');
+                    msg = msg.join("\n");
                 }
 
                 if (msg) {
-                    alert('Admin error: ' + msg);
+                    alert("Admin error: " + msg);
                 }
             }
         },
 
-        createHiddenElement: function (name, value) {
-            var field = document.createElement('input');
-            field.type = 'hidden';
-            field.name = name;
-            field.value = value;
+        createHiddenElement : function (name, value) {
+            var field;
+            if (isIE) {
+                field = document.createElement('input');
+                field.setAttribute('type', 'hidden');
+                field.setAttribute('name', name);
+                field.setAttribute('value', value);
+            } else {
+                field = document.createElement('input');
+                field.type = 'hidden';
+                field.name = name;
+                field.value = value;
+            }
+
             return field;
         }
     };
-
-    // Export constructor
-    window.Cybersource = Cybersource;
-    return Cybersource;
-});
+}));
