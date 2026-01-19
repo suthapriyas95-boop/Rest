@@ -42,15 +42,33 @@ define([
                         }).then(function (up) {
                             return up.show({});
                         }).then(function (tt) {
-                            // inject transient token into admin form
-                            var $form = jQuery('#edit_form');
-                            if ($form.length && !jQuery('input[name="transientToken"]').length) {
-                                $form.append('<input type="hidden" name="transientToken" value="' + tt + '"/>');
-                            } else {
-                                jQuery('input[name="transientToken"]').val(tt);
-                            }
-                            // proceed with existing save flow
-                            order._realSubmit();
+                            // POST transient token to admin transientDataRetrival endpoint
+                            var payload = {
+                                transientToken: tt,
+                                ScreenHeight: window.screen.height,
+                                ScreenWidth: window.screen.width,
+                                TimeDifference: new Date().getTimezoneOffset(),
+                                ColorDepth: window.screen.colorDepth,
+                                JavaEnabled: navigator.javaEnabled(),
+                                JavaScriptEnabled: true,
+                                Language: navigator.language,
+                                AcceptContent: window.navigator.userAgent,
+                                vault: false
+                            };
+
+                            jQuery.post(self.transientUrl, payload)
+                                .done(function (response) {
+                                    // if backend returns a redirect or error, handle accordingly
+                                    if (response && response.status && response.status == 500) {
+                                        alert(response.message || 'Unable to place order.');
+                                        return;
+                                    }
+                                    // proceed with existing save flow after transient processing
+                                    order._realSubmit();
+                                })
+                                .fail(function () {
+                                    alert('Unable to process Unified Checkout token on server.');
+                                });
                         }).catch(function () {
                             alert('Unable to process Unified Checkout.');
                         });
