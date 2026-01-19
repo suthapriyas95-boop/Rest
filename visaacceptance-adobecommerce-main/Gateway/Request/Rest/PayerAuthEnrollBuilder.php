@@ -102,6 +102,9 @@ class PayerAuthEnrollBuilder implements \Magento\Payment\Gateway\Request\Builder
         $payment = $paymentDO->getPayment();
         $quote = $this->checkoutSession->getQuote();
         $browserDetails = $this->sessionStorage->getData('browser_details');
+        if (!is_array($browserDetails)) {
+            $browserDetails = [];
+        }
         $referenceId = $this->sessionStorage->getData('referenceId');
         $payerAuthEnrollService_returnURL = $this->url->getUrl('cybersourcePayment/Frontend/ReturnController/');
         $requestArr = [
@@ -110,18 +113,18 @@ class PayerAuthEnrollBuilder implements \Magento\Payment\Gateway\Request\Builder
                 'returnUrl' => $payerAuthEnrollService_returnURL,
                 'deviceChannel' => self::DEVICE_CHANEL,
             ],
-        'deviceInformation' => [
-                'httpBrowserJavaEnabled' => $browserDetails['JavaEnabled'],
-                'httpAcceptBrowserValue' => $this->request->getHeader('Accept'),
-                'httpBrowserLanguage' => $browserDetails['Language'],
-                'httpBrowserColorDepth' => $browserDetails['ScreenHeight'],
-                'httpBrowserScreenHeight' => $browserDetails['ScreenHeight'],
-                'httpBrowserScreenWidth' => $browserDetails['ScreenWidth'],
-                'httpBrowserTimeDifference' => $browserDetails['TimeDifference'],
-                'userAgentBrowserValue' => $this->request->getHeader('User-Agent'),
+            'deviceInformation' => [
+                'httpBrowserJavaEnabled' => $browserDetails['JavaEnabled'] ?? false,
+                'httpAcceptBrowserValue' => (string)$this->request->getHeader('Accept'),
+                'httpBrowserLanguage' => $browserDetails['Language'] ?? null,
+                'httpBrowserColorDepth' => $browserDetails['ColorDepth'] ?? ($browserDetails['ScreenHeight'] ?? null),
+                'httpBrowserScreenHeight' => $browserDetails['ScreenHeight'] ?? null,
+                'httpBrowserScreenWidth' => $browserDetails['ScreenWidth'] ?? null,
+                'httpBrowserTimeDifference' => $browserDetails['TimeDifference'] ?? null,
+                'userAgentBrowserValue' => (string)$this->request->getHeader('User-Agent'),
                 'ipAddress' => $this->remoteAddress->getRemoteAddress(),
-                'httpBrowserJavaScriptEnabled' => $browserDetails['JavaScriptEnabled'],
-                'httpAcceptContent' => $this->request->getHeader('User-Agent'),
+                'httpBrowserJavaScriptEnabled' => $browserDetails['JavaScriptEnabled'] ?? false,
+                'httpAcceptContent' => (string)$this->request->getHeader('User-Agent'),
             ]
         ];
 
