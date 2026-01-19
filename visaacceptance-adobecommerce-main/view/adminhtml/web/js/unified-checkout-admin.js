@@ -73,6 +73,7 @@ define([
                     console.log('[UC Admin] capture context response received', response);
                     var library_url = response && response.unified_checkout_client_library;
                     var cc = response && response.captureContext;
+                    var layoutSelected = response && response.layoutSelected;
                     if (!library_url || !cc) {
                         console.error('[UC Admin] capture context response missing data', response);
                         alert('Unable to initialize Unified Checkout.');
@@ -94,7 +95,22 @@ define([
                             return accept.unifiedPayments(false);
                         }).then(function (up) {
                             console.log('[UC Admin] unifiedPayments initialized');
-                            return up.show({});
+                            var showArgs;
+                            if (layoutSelected === 'SIDEBAR') {
+                                showArgs = {
+                                    containers: {
+                                        paymentSelection: '#buttonPaymentListContainer'
+                                    }
+                                };
+                            } else {
+                                showArgs = {
+                                    containers: {
+                                        paymentSelection: '#buttonPaymentListContainer',
+                                        paymentScreen: '#embeddedPaymentContainer'
+                                    }
+                                };
+                            }
+                            return up.show(showArgs || {});
                         }).then(function (tt) {
                             console.log('[UC Admin] received transient token from UC');
                             // POST transient token to admin transientDataRetrival endpoint
