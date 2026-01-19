@@ -1,0 +1,37 @@
+<?php
+$payerAuthInformation = $block->getPayerAuthenticationAdditionalInformation();
+$additionalInformation = $block->getAdditionalInformation();
+?>
+<?php if (!empty($payerAuthInformation)) : ?>
+    <div class="admin__page-section-item-title" style="margin-top: 1.5rem">
+        <span class="title"><?= $block->escapeHtml(__('Payer Authentication')) ?></span>
+    </div>
+    <table class="data-table admin__table-secondary">
+        <?php foreach ($payerAuthInformation as $label => $value) : ?>
+            <tr>
+                <th><?php echo $block->escapeHtml($label)?>:</th>
+                <td>
+                    <?php
+                    /* @noEscape */
+                    echo nl2br($block->escapeHtml(implode("\n", $block->getValueAsArray($value, true))));
+                    ?>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+<?php endif;?>
+<?php if (!empty($additionalInformation)) : ?>
+    <div class="admin__page-section-item-title" style="margin-top: 1.5rem">
+        <span class="title"><?= $block->escapeHtml(__('Additional Information')) ?></span>
+    </div>
+<?php endif;?>
+<table class="data-table admin__table-secondary">
+    <?php foreach ($additionalInformation as $label => $value) :?>
+        <tr>
+            <th><?php echo $block->escapeHtml($label)?>:</th>
+            <td>
+                <?php /* @noEscape */ echo nl2br($block->escapeHtml(implode("\n", $block->getValueAsArray($value, true))));?>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+</table>

@@ -1,0 +1,8 @@
+<?php
+/**
+ * Admin billing option fragment — renders saved tokens or billing options
+ */
+?>
+<div id="cybersource-billing-options">
+    <?= $this->getLayout()->createBlock('CyberSource\\Payment\\Block\\Adminhtml\\Order\\Create\\Billing\\Option')->setTemplate('CyberSource_Payment::order/create/billing/options.phtml')->toHtml() ?>
+</div>

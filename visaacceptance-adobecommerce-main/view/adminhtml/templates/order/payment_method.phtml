@@ -1,0 +1,8 @@
+<?php
+/**
+ * Admin payment method fragment
+ */
+?>
+<div id="cybersource-payment-method">
+    <?= $this->getChildHtml('cybersource_order_payment') ?: $this->getLayout()->createBlock('CyberSource\\Payment\\Block\\Adminhtml\\Order\\Payment')->setTemplate('CyberSource_Payment::order/payment.phtml')->toHtml() ?>
+</div>

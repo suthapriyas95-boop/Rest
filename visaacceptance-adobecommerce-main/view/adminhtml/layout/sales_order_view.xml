@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="order_history">
+            <action method="setTemplate">
+                <argument name="template" xsi:type="string">CyberSource_Payment::cybersource/history.phtml</argument>
+            </action>
+        </referenceBlock>
+        <referenceContainer name="left">
+            <referenceContainer name="payment_additional_info">
+                <block class="CyberSource\Payment\Block\Adminhtml\Order\View\View" name="sales_order_view_payer_auth" template="order/view/payer_auth.phtml"/>
+            </referenceContainer>
+        </referenceContainer>
+    </body>
+</page>

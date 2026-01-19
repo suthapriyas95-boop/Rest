@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!-- Admin order create form layout fragment -->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="content">
+            <block class="CyberSource\Payment\Block\Adminhtml\Order\Form" name="cybersource.order.form" template="order/form.phtml"/>
+        </referenceContainer>
+    </body>
+</page>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="content">
+            <block class="CyberSource\\Payment\\Block\\Adminhtml\\Order\\Form" name="cybersource.admin.order.form" template="CyberSource_Payment::order/form.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

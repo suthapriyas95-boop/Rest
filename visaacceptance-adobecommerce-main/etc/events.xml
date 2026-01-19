@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2018 CyberSource. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="cybersource_quote_submit_success">
+        <observer name="sendEmail" instance="CyberSource\Payment\Observer\SubmitObserver" />
+    </event>
+     <event name="payment_method_assign_data">
+        <observer name="uc_payment_gateway_data_assign" instance="CyberSource\Payment\Observer\DataAssignObserver" />
+    </event>
+    <!-- <event name="admin_system_config_changed_section_payment">
+        <observer name="admin_system_config_changed_section_payment" instance="CyberSource\Payment\Observer\SaveConfigObserver" />
+    </event> -->
+</config>

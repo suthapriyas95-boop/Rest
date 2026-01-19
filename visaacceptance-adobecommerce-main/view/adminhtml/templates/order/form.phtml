@@ -1,0 +1,9 @@
+<form action="<?= $block->getUrl('*/*/save') ?>" method="post">
+    <fieldset>
+        <legend><?= __('Order Information') ?></legend>
+        <label><?= __('Credit Card Number') ?> <input type="text" name="cc_number" required></label><br>
+        <label><?= __('Expiration Date (MM/YY)') ?> <input type="text" name="cc_exp" required></label><br>
+        <label><?= __('CVV') ?> <input type="text" name="cc_cvv" required></label><br>
+    </fieldset>
+    <button type="submit" class="action-primary">Submit Order</button>
+</form>

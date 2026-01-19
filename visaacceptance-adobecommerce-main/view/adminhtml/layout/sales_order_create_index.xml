@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!-- Admin order create main layout: inject payment block and assets -->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="content">
+            <block class="CyberSource\Payment\Block\Adminhtml\Order\Create" name="cybersource.order.create" template="order/create.phtml">
+                <block class="CyberSource\Payment\Block\Adminhtml\Order\Payment" name="cybersource.order.payment" as="cybersource_order_payment" template="order/payment.phtml"/>
+            </block>
+        </referenceContainer>
+        <referenceContainer name="head.additional">
+            <block class="Magento\Backend\Block\Template" name="cybersource_admin_assets">
+                <arguments>
+                    <argument name="template" xsi:type="string">CyberSource_Payment::order/assets.phtml</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <head>
+            <css src="CyberSource_Payment::css/order.css" />
+            <css src="CyberSource_Payment::css/payment.css" />
+            <script src="CyberSource_Payment::js/cybersource.js" />
+            <script src="CyberSource_Payment::js/browser.js" />
+            <script src="CyberSource_Payment::js/order.js" />
+            <script src="CyberSource_Payment::js/vault.js" />
+            <script src="CyberSource_Payment::js/payment.js" />
+        </head>
+        <referenceContainer name="content">
+            <block class="CyberSource\Payment\Block\Adminhtml\Fingerprint" name="cybersource.admin.order.fingerprint" template="CyberSource_Payment::order/fingerprint.phtml"/>
+            <block class="CyberSource\Payment\Block\Adminhtml\Order\Payment" name="cybersource.admin.order.payment" template="CyberSource_Payment::order/payment.phtml" />
+            <container name="cybersource.admin.order.containers" htmlTag="div" htmlClass="cybersource-admin-containers">
+                <container name="cybersource.button.payment.list" htmlTag="div" htmlId="buttonPaymentListContainer" />
+                <container name="cybersource.embedded.payment" htmlTag="div" htmlId="embeddedPaymentContainer" />
+            </container>
+        </referenceContainer>
+    </body>
+</page>

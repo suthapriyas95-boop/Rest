@@ -1,0 +1,6 @@
+<?php
+/**
+ * Shipping method wrapper for admin order create — delegates to existing template
+ */
+?>
+<?= $this->getLayout()->createBlock('Magento\\Shipping\\Block\\Adminhtml\\Order\\Create\\Shipping\\Method')->setTemplate('CyberSource_Payment::order/shipping_method.phtml')->toHtml() ?>

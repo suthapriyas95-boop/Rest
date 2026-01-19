@@ -1,0 +1,4 @@
+.svn
+build/
+/*.patch
+.DS_Store

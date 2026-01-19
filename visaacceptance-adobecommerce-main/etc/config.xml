@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!--
+/**
+* Copyright © 2018 CyberSource. All rights reserved.
+* See LICENSE.txt for license details.
+*/
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <unifiedcheckout>
+                <active>1</active>
+                <title>Visa Acceptance Solutions</title>
+                <model>CyberSourcePaymentGatewayFacade</model>
+                <dm_fail_sender>general</dm_fail_sender>
+                <dm_fail_template>payment_cybersource_section_cybersource_dm_dm_fail_template</dm_fail_template>
+                <can_authorize>1</can_authorize>
+                <can_authorize_vault>1</can_authorize_vault>
+                <can_capture>1</can_capture>
+                <can_capture_partial>1</can_capture_partial>
+                <can_capture_vault>1</can_capture_vault>
+                <can_void>1</can_void>
+                <can_cancel>1</can_cancel>
+                <can_refund>1</can_refund>
+                <can_refund_partial_per_invoice>1</can_refund_partial_per_invoice>
+                <can_use_checkout>1</can_use_checkout>
+                <can_use_internal>1</can_use_internal>
+                <org_id backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <report_password backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <transaction_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <rest_key_value backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+				<environment>production</environment>
+				<payment_action>authorize</payment_action>
+                <uc_layout>EMBEDDED</uc_layout>
+				<api_shared_secret_sandbox backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <api_shared_secret_production backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <credit_card_types>VI,MC,AE,DI</credit_card_types>
+                <allowed_payments>PANENTRY,CLICKTOPAY,GOOGLEPAY</allowed_payments>
+                <active_3ds>0</active_3ds>
+            </unifiedcheckout> 
+
+            <unifiedcheckout_vault>
+                <unifiedcheckout_vault_active>0</unifiedcheckout_vault_active>
+                <model>CyberSourcePaymentCreditCardVaultFacade</model>
+                <title>Saved Cards</title>
+                <can_use_internal>1</can_use_internal>
+            </unifiedcheckout_vault>
+        </payment>
+    </default>
+</config>

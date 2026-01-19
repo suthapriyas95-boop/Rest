@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!-- ACL for CyberSource admin controllers -->
+<acl xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <resources>
+        <resource id="Magento_Backend::admin">
+            <resource id="CyberSource_Payment::cybersource_admin" title="CyberSource Admin Actions" sortOrder="10">
+                <resource id="CyberSource_Payment::manage" title="Manage CyberSource" />
+            </resource>
+        </resource>
+    </resources>
+</acl>

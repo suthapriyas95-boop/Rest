@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+<!-- Table: cybersource_webhook -->
+<table name="cybersource_webhook" resource="default" engine="innodb" comment="webhook-details">
+<column xsi:type="int" name="entity_id" nullable="false" identity="true" unsigned="true" comment="Entity ID"/>
+<column xsi:type="text" name="product_id" nullable="false" comment="Product ID"/>
+<column xsi:type="text" name="organization_id" nullable="false" comment="Merchant ID"/>
+<column xsi:type="text" name="webhook_id" nullable="false" comment="Webhook ID"/>
+<column xsi:type="text" name="digital_signature_key_id" nullable="false" comment="Digital Signature Key ID"/>
+<column xsi:type="text" name="digital_signature_key" nullable="false" comment="Digital Signature Key"/>
+<column xsi:type="timestamp" name="created_at" nullable="false" on_update="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+<constraint xsi:type="primary" referenceId="PRIMARY">
+<column name="entity_id"/>
+</constraint>
+</table>
+ 
+    <!-- Table: cybersource_payment_token -->
+<table name="cybersource_payment_token" resource="default" engine="innodb" comment="Token Table">
+<column xsi:type="int" name="token_id" padding="10" unsigned="true" nullable="false" identity="true" comment="Token Id"/>
+<column xsi:type="datetime" name="created_date" on_update="false" nullable="true" comment="Created Date"/>
+<column xsi:type="int" name="customer_id" padding="11" unsigned="false" nullable="false" identity="false" default="0" comment="Customer Id"/>
+<column xsi:type="text" name="order_id" nullable="false" comment="Order Id"/>
+<column xsi:type="text" name="quote_id" nullable="false" comment="Quote Id"/>
+<column xsi:type="text" name="payment_token" nullable="false" comment="Payment Token"/>
+<column xsi:type="text" name="customer_email" nullable="false" comment="Customer Email"/>
+<column xsi:type="int" name="store_id" padding="11" unsigned="false" nullable="false" identity="false" comment="Store Id"/>
+<column xsi:type="int" name="card_default" padding="11" unsigned="false" nullable="false" identity="false" default="0" comment="Cart Default"/>
+<column xsi:type="int" name="card_expire" padding="11" unsigned="false" nullable="false" identity="false" comment="Cart Expire"/>
+<column xsi:type="text" name="card_type" nullable="false" comment="Cart Type"/>
+<column xsi:type="text" name="cc_last4" nullable="false" comment="Cc Last 4"/>
+<column xsi:type="text" name="payment_type" nullable="false" comment="Payment Type"/>
+<column xsi:type="datetime" name="updated_date" on_update="false" nullable="false" comment="Updated Date"/>
+<column xsi:type="text" name="card_expiry_date" nullable="true" comment="Card Expiry Date"/>
+<column xsi:type="int" name="address_id" padding="11" unsigned="false" nullable="true" identity="false" comment="Address ID"/>
+<column xsi:type="text" name="reference_number" nullable="true" comment="Reference Number"/>
+<column xsi:type="int" name="authorize_only" padding="11" unsigned="false" nullable="true" identity="false" default="0" comment="Authorize Only"/>
+<column xsi:type="text" name="transaction_id" nullable="true" comment="Transaction ID"/>
+<column xsi:type="text" name="cc_number" nullable="true" comment="CC Number"/>
+<column xsi:type="varchar" name="payment_method" nullable="false" length="10" comment="Payment Method"/>
+<constraint xsi:type="primary" referenceId="PRIMARY">
+<column name="token_id"/>
+</constraint>
+</table>
+</schema>

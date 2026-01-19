@@ -1,0 +1,241 @@
+<?xml version="1.0"?>
+<!--
+/**
+* Copyright © 2020 CollinsHarper. All rights reserved.
+* See LICENSE.txt for license details.
+*/
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="payment">
+            <group id="cybersource_section" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Visa Acceptance Solutions</label>
+                <comment><![CDATA[The Visa Acceptance Solutions Payment Management Platform enables merchants to accept and manage payments, mitigate fraud, and secure their payment data.]]></comment>
+                <attribute type="expanded">1</attribute>
+                <fieldset_css>complex</fieldset_css>
+                <frontend_model>CyberSource\Payment\Block\Adminhtml\Config\Fieldset</frontend_model>
+				
+                <group id="cybersource_general" translate="label" type="text" sortOrder="20" 	showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>General</label>
+					 <field id="environment" type="select" translate="label" sortOrder="1" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>Environment</label>
+                        <tooltip><![CDATA[Select the gateway environment to use for transactions]]></tooltip>
+                        <source_model>CyberSource\Payment\Model\Adminhtml\Source\Environment</source_model>
+                        <config_path>payment/unifiedcheckout/environment</config_path>
+                    </field>
+
+					<!-- Start Sandbox -->
+                    <field id="merchant_id_sandbox" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>Merchant ID</label>
+                        <tooltip><![CDATA[Enter your Visa Acceptance Solutions Merchant ID. If you do not have one, an evaluation account can be created at https://developer.visaacceptance.com/docs/vas/en-us/platform/developer/all/rest/rest-getting-started/restgs-register.html]]></tooltip>
+                        <depends><field id="environment">sandbox</field></depends>
+                        <config_path>payment/unifiedcheckout/merchant_id_sandbox</config_path>
+                        <validate>required-entry</validate>
+                    </field>
+					
+                    <field id="api_key_sandbox" translate="label" type="text" sortOrder="3" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>API Key</label>
+                        <tooltip><![CDATA[See https://developer.visaacceptance.com/docs/vas/en-us/platform/developer/all/rest/rest-getting-started/restgs-security-key-pair-intro/restgs-security-key-pair-task.html on how to create the API Key]]></tooltip>
+                        <validate>no-whitespace</validate>
+                        <depends><field id="environment">sandbox</field></depends>
+                        <config_path>payment/unifiedcheckout/api_key_sandbox</config_path>
+                    </field>
+					
+                    <field id="api_shared_secret_sandbox" translate="label" type="obscure" sortOrder="4" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>API Shared Secret</label>
+                        <tooltip><![CDATA[See https://developer.visaacceptance.com/docs/vas/en-us/platform/developer/all/rest/rest-getting-started/restgs-security-key-pair-intro/restgs-security-key-pair-task.html on how to create the Shared Secret]]></tooltip>
+                        <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                        <validate>no-whitespace</validate>
+                        <depends><field id="environment">sandbox</field></depends>
+                        <config_path>payment/unifiedcheckout/api_shared_secret_sandbox</config_path>
+                    </field>
+                    <!-- End Sandbox -->
+
+                    <!-- Start Production -->
+                    <field id="merchant_id_production" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>Merchant ID</label>
+                        <tooltip><![CDATA[Enter your Visa Acceptance Solutions Merchant ID. If you do not have one, an evaluation account can be created at https://developer.visaacceptance.com/docs/vas/en-us/platform/developer/all/rest/rest-getting-started/restgs-register.html]]></tooltip>
+                        <depends><field id="environment">production</field></depends>
+                        <config_path>payment/unifiedcheckout/merchant_id_production</config_path>
+                        <validate>required-entry</validate>
+                    </field>
+					
+                    <field id="api_key_production" translate="label" type="text" sortOrder="6" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>API Key</label>
+                        <tooltip><![CDATA[See https://developer.visaacceptance.com/docs/vas/en-us/platform/developer/all/rest/rest-getting-started/restgs-security-key-pair-intro/restgs-security-key-pair-task.html on how to create the API Key]]></tooltip>
+                        <depends><field id="environment">production</field></depends>
+                        <validate>no-whitespace</validate>
+                        <config_path>payment/unifiedcheckout/api_key_production</config_path>
+                    </field>
+					
+                    <field id="api_shared_secret_production" translate="label" type="obscure" sortOrder="7" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>API Shared Secret</label>
+                        <tooltip><![CDATA[See https://developer.visaacceptance.com/docs/vas/en-us/platform/developer/all/rest/rest-getting-started/restgs-security-key-pair-intro/restgs-security-key-pair-task.html on how to create the Shared Secret]]></tooltip>
+                        <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                        <validate>no-whitespace</validate>
+                        <depends><field id="environment">production</field></depends>
+                        <config_path>payment/unifiedcheckout/api_shared_secret_production</config_path>
+                    </field>
+                    <!-- End Production -->
+
+                    <field id="debug" translate="label" type="select" sortOrder="9" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>Debug Mode</label>
+                        <tooltip><![CDATA[Select Yes or No to generate Request/Response Logs]]></tooltip>
+                        <comment>Version 25.2.0</comment>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <config_path>payment/unifiedcheckout/debug</config_path>
+                    </field>
+				</group>
+
+                <!-- p12 cert start -->
+                <group id="cybersourceapi_p12" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Message Level Encryption</label>
+                    <field id="mle_enable" translate="label" type="select" sortOrder="9" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>Enabled</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <config_path>payment/unifiedcheckout/mle_enable</config_path>
+                    </field>
+                    <field id="p12_accesskey" translate="label" type="text" sortOrder="14" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>Key Password</label>
+                        <frontend_model>CyberSource\Payment\Block\Adminhtml\Config\Obscure</frontend_model>
+                        <config_path>payment/unifiedcheckout/p12_accesskey</config_path>
+                        <validate>no-whitespace</validate>
+                        <depends><field id="mle_enable">1</field></depends>
+                    </field>
+                    <field id="general_p12_certificate" translate="label" type="file" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>Certificate File</label>
+                        <backend_model>CyberSource\Payment\Model\Config\Source\CertificateUpload</backend_model>
+                        <config_path>payment/unifiedcheckout/p12_certificate</config_path>
+                        <depends><field id="mle_enable">1</field></depends>
+                    </field>
+                </group>
+                <!-- p12 cert end -->
+
+                <group id="unified_checkout_settings" translate="label" type="text" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Secure Payment Methods</label>
+                    <field id="active" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>Enabled</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <config_path>payment/unifiedcheckout/active</config_path>
+                    </field>
+
+                    <field id="title" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="0" showInStore="1">
+                        <label>Title</label>
+                        <tooltip><![CDATA[Payment method label that is visible to customers on the checkout page]]></tooltip>
+                        <validate>required-entry</validate>
+                        <config_path>payment/unifiedcheckout/title</config_path>
+                        <depends><field id="active">1</field></depends>
+                    </field>
+
+                    <field id="payment_action" translate="label" type="select" sortOrder="3" showInDefault="1" showInWebsite="1" showInStore="0">
+                        <label>Payment Action</label>
+                        <source_model>CyberSource\Payment\Model\Adminhtml\Source\PaymentAction</source_model>
+                        <config_path>payment/unifiedcheckout/payment_action</config_path>
+                        <depends><field id="active">1</field></depends>
+                    </field>
+
+                    <field id="credit_card_types" translate="label" type="multiselect" sortOrder="4" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
+                        <label>Card Types</label>
+                        <comment>Select Card Types</comment>
+                        <source_model>CyberSource\Payment\Model\Source\Cctype</source_model>
+                        <config_path>payment/unifiedcheckout/credit_card_types</config_path>
+                        <depends><field id="active">1</field></depends>
+                    </field>
+
+                    <field id="allowed_payments" translate="label" type="multiselect" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
+                        <label>Allowed Payment Methods</label>
+                        <comment>Select Payment Types which will be displayed to Customer</comment>
+                        <source_model>CyberSource\Payment\Model\Config\Source\AllowedPayments</source_model>
+                        <config_path>payment/unifiedcheckout/allowed_payments</config_path>
+                        <depends><field id="active">1</field></depends>
+                    </field>
+
+                    <field id="uc_layout" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
+                        <label>Select Layout</label>
+                        <comment>Select Payment Screen</comment>
+                        <source_model>CyberSource\Payment\Model\Config\Source\UcLayout</source_model>
+                        <config_path>payment/unifiedcheckout/uc_layout</config_path>
+                        <depends><field id="active">1</field></depends>
+                    </field>
+
+                    <field id="allowspecific" translate="label" type="allowspecific" sortOrder="7" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
+                        <label>Payment from Applicable Countries</label>
+                        <source_model>Magento\Payment\Model\Config\Source\Allspecificcountries</source_model>
+                        <config_path>payment/unifiedcheckout/allowspecific</config_path>
+                        <depends><field id="active">1</field></depends>
+                    </field>
+
+                    <field id="specificcountry" translate="label" type="multiselect" sortOrder="8" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
+                        <label>Payment from Specific Countries</label>
+                        <source_model>CyberSource\Payment\Model\Adminhtml\Source\Country</source_model>
+                        <config_path>payment/unifiedcheckout/specificcountry</config_path>
+                        <depends>
+                            <field id="active">1</field>
+                            <field id="allowspecific">1</field>
+                        </depends>
+                    </field>   
+
+                    <field id="active_3ds" translate="label" type="select" sortOrder="9" showInDefault="1" showInWebsite="1" showInStore="1">
+                        <label>Payer Authentication / 3D Secure</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <config_path>payment/unifiedcheckout/active_3ds</config_path>
+                        <depends>
+                            <field id="active">1</field>
+                        </depends>
+                    </field>
+                            
+                    <field id="unifiedcheckout_vault_active" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                        <label>Tokenization</label>
+                        <tooltip><![CDATA[Offer registered customers the option to save their payment card details]]></tooltip>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <config_path>payment/unifiedcheckout_vault/active</config_path>
+                        <depends>
+                            <field id="active">1</field>
+                        </depends>
+                    </field>
+
+                    <field id="unifiedcheckout_vault_title" translate="label" type="text" sortOrder="11" showInDefault="1" showInWebsite="1" showInStore="1">
+                        <label>Tokenization Title</label>
+                            <tooltip><![CDATA[Saved card label]]></tooltip>
+                            <config_path>payment/unifiedcheckout_vault/title</config_path>
+                            <depends>
+                                <field id="active">1</field>
+                                <field id="unifiedcheckout_vault_active">1</field>
+                            </depends>
+                        </field>
+                        
+                        <field id="enable_cvv" translate="label" type="select" sortOrder="12" showInDefault="12" showInWebsite="1" showInStore="1">
+                            <label>Saved Card Verification</label>
+                            <tooltip><![CDATA[Require card security code when paying with a saved card]]></tooltip>
+                            <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                            <config_path>payment/unifiedcheckout/enable_cvv</config_path>
+                            <depends>
+                                <field id="active">1</field>
+                                <field id="unifiedcheckout_vault_active">1</field>
+                            </depends>
+                        </field>
+                        <!-- <field id="decision_manager" translate="label" type="select" sortOrder="180" showInDefault="1" showInWebsite="1" showInStore="1">
+                            <label>Decision Manager</label>
+                            <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                            <config_path>payment/unifiedcheckout/decision_manager</config_path>
+                            <depends>
+                                <field id="unifiedcheckout_vault_active">1</field>
+                            </depends>
+                       </field> -->
+
+                        <field id="enforce_sca_on_save" translate="label" type="select" sortOrder="13" showInDefault="13" showInWebsite="1" showInStore="1">
+                            <label>Enforce Strong Customer Authentication</label>
+                            <tooltip><![CDATA[If enabled, card holders will be 3DS challenged when saving a card]]></tooltip>
+                            <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                            <config_path>payment/unifiedcheckout/enforce_sca_on_save</config_path>
+                            <depends>
+                                <field id="active">1</field>
+                                <field id="active_3ds">1</field>
+                                <field id="unifiedcheckout_vault_active">1</field>
+                            </depends>
+                        </field>
+                    </group>
+                </group>
+        </section>
+    </system>
+</config>

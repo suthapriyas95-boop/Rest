@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2018 CyberSource. All rights reserved.
+ * See LICENSE.txt for license details.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+    <referenceContainer name="after.body.start">
+            <block template="CyberSource_Payment::device_data_collection.phtml"  name="device_data_collection"  />
+            <block template="CyberSource_Payment::stepup_authentication.phtml" name="stepup_authentication" />
+    </referenceContainer>
+    <referenceContainer name="before.body.end">
+
+        </referenceContainer>
+        <referenceContainer name="content">
+            <referenceBlock name="checkout.root">
+                <arguments>
+                    <argument name="jsLayout" xsi:type="array">                        
+                        <item name="components" xsi:type="array">
+                            <item name="checkout" xsi:type="array">                                
+                                <item name="children" xsi:type="array">
+                                    <item name="steps" xsi:type="array">
+                                        <item name="children" xsi:type="array">
+                                            <item name="shipping-step" xsi:type="array">    
+                                                <item name="children" xsi:type="array">             
+                                                    <item name="shippingAddress" xsi:type="array">
+                                                        <item name="children" xsi:type="array">                     
+                                                            <item name="shipping-address-fieldset" xsi:type="array">
+                                                                <item name="children" xsi:type="array">
+                                                                	<item name="firstname" xsi:type="array">
+                                                                        <item name="validation" xsi:type="array">
+                                                                            <item name="validate-name" xsi:type="boolean">true</item>
+                                                                        </item>
+                                                                    </item>
+                                                                    <item name="lastname" xsi:type="array">
+                                                                        <item name="validation" xsi:type="array">
+                                                                            <item name="validate-name" xsi:type="boolean">true</item>
+                                                                        </item>
+                                                                    </item>
+                                                                </item>
+                                                            </item>
+                                                        </item>
+                                                    </item>
+                                                </item>
+                                            </item>
+                                            <item name="billing-step" xsi:type="array">
+                                                <item name="children" xsi:type="array">
+                                                    <item name="payment" xsi:type="array">
+                                                        <item name="children" xsi:type="array">
+                                                            <item name="renders" xsi:type="array">
+                                                                <!-- merge payment method renders here -->
+                                                                <item name="children" xsi:type="array">
+                                                                    <item name="unifiedcheckout" xsi:type="array">
+                                                                        <item name="component" xsi:type="string">CyberSource_Payment/js/view/payment/unified-checkout</item>
+                                                                            <item name="methods" xsi:type="array">
+                                                                            <item name="unifiedcheckout" xsi:type="array">
+                                                                            <item name="isBillingAddressRequired" xsi:type="boolean">true</item>
+                                                                            </item>
+                                                                        </item>
+                                                                    </item>
+                                                                </item>
+                                                            </item>
+                                                        </item>
+                                                    </item>
+                                                </item>
+                                            </item>
+                                        </item>
+                                    </item>                                    
+                                </item>
+                            </item>                            
+                        </item>
+                    </argument>
+                </arguments>
+            </referenceBlock>
+        </referenceContainer>
+    </body>
+</page>

@@ -1,0 +1,51 @@
+<!-- Admin Order Payment Block -->
+<div id="cybersource-admin-payment">
+	<div>Payment method UI — CyberSource unified checkout will render here.</div>
+</div>
+
+<script type="text/javascript">
+	(function () {
+		window.cybersourceAdminConfig = {
+			captureContextUrl: '<?php /* @noEscape */ echo $block->getUrl('cybersourceadmin/capturecontextrequest'); ?>',
+			paSetupUrl: '<?php /* @noEscape */ echo $block->getUrl('cybersourceadmin/pasetup'); ?>',
+			transientUrl: '<?php /* @noEscape */ echo $block->getUrl('cybersourceadmin/transientdataretrival'); ?>',
+			returnCheckUrl: '<?php /* @noEscape */ echo $block->getUrl('cybersourceadmin/return/check'); ?>',
+			orderSaveUrl: '<?php /* @noEscape */ echo $block->getUrl('cybersourceadmin/order/save'); ?>'
+		};
+	})();
+</script>
+
+<script type="text/javascript">
+	require(['jquery', 'mage/url', 'Cybersource_Payment/js/browser', 'Cybersource_Payment/js/cybersource'], function ($, url) {
+		// ensure browser details are sent to admin PA setup endpoint early
+		if (window.cybersourceAdminConfig && window.cybersourceAdminConfig.paSetupUrl) {
+			try {
+				var details = {
+					userAgent: navigator.userAgent,
+					language: navigator.language,
+					platform: navigator.platform
+				};
+				$.post(window.cybersourceAdminConfig.paSetupUrl, {additional_data: details});
+			} catch (e) {
+				console.log('Cybersource admin PA setup browser details error', e);
+			}
+		}
+	});
+</script>
+
+<script type="text/javascript">
+	require(['Cybersource_Payment/js/payment', 'jquery'], function (paymentModule, $) {
+		try {
+			var cfg = {
+				captureContextUrl: window.cybersourceAdminConfig.captureContextUrl,
+				paSetupUrl: window.cybersourceAdminConfig.paSetupUrl,
+				transientUrl: window.cybersourceAdminConfig.transientUrl,
+				container: 'cybersource-admin-payment',
+				methodCode: 'unifiedcheckout'
+			};
+			paymentModule(cfg);
+		} catch (e) {
+			console.log('Error initializing Cybersource admin payment module', e);
+		}
+	});
+</script>

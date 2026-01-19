@@ -1,0 +1,646 @@
+<?xml version="1.0"?>
+<!--
+/**
+* Copyright © 2018 CyberSource. All rights reserved.
+* See LICENSE.txt for license details.
+*/
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+	<!-- Logger configuration -->
+	<preference for="CyberSource\Payment\Model\LoggerInterface" type="CyberSource\Payment\Model\Logger" />
+	<preference for="CyberSource\Payment\Model\Checkout\PaymentFailureRouteProviderInterface" type="CyberSource\Payment\Model\Checkout\PaymentFailureRouteProvider" />
+	
+	<type name="CyberSource\Payment\Model\LoggerInterface">
+		<plugin name="cyberSourceLoggerCensorPlugin" type="\CyberSource\Payment\Plugin\LoggerCensorPlugin" />
+	</type>
+	<type name="CyberSource\Payment\Model\Logger">
+		<arguments>
+			<argument name="name" xsi:type="string">CyberSource Logger</argument>
+			<argument name="handlers" xsi:type="array">
+				<item name="cybersource" xsi:type="object">CyberSourcePaymentLoggerHandler</item>
+			</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourcePaymentLoggerHandler" type="Magento\Framework\Logger\Handler\Base">
+		<arguments>
+			<argument name="fileName" xsi:type="string">/var/log/cybersource.log</argument>
+		</arguments>
+	</virtualType>
+	<type name="CyberSource\Payment\Helper\Data">
+		<arguments>
+			<argument name="serializer" xsi:type="object">CyberSource\Payment\Helper\JsonObjectSerializer</argument>
+		</arguments>
+	</type>
+	<!-- Configuration reader -->
+	<type name="CyberSource\Payment\Model\Config">
+		<arguments>
+			<argument name="pathPattern" xsi:type="const">Magento\Payment\Gateway\Config\Config::DEFAULT_PATH_PATTERN</argument>
+			<argument name="methodCode" xsi:type="const">CyberSource\Payment\Model\Config::CODE</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourcePaymentGatewayRequestRestConversionDetailsBuilder" type="Magento\Payment\Gateway\Request\BuilderComposite">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="timeInterval" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\TimeIntervalBuilder</item>
+				<item name="orgId" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\OrganizationIdBuilder</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayValidatorConversionDetailsValidator" type="Magento\Payment\Gateway\Validator\ValidatorComposite">
+		<arguments>
+			<argument name="validators" xsi:type="array">
+				<item name="restvalidator" xsi:type="string">CyberSource\Payment\Gateway\Validator\RestResponseCodeValidator</item>
+				<item name="conversionDetailsValidator" xsi:type="string">CyberSource\Payment\Gateway\Validator\ConversionDetailsValidator</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentConversionDetailsClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_GET</argument>
+			<argument name="requestPath" xsi:type="string">/reporting/v3/conversion-details</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestBaseCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+		<arguments>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\TransferFactory</argument>
+			<argument name="errorMessageMapper" xsi:type="object">CyberSource\Payment\Gateway\ErrorMapper\ConfigurableMapper</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayCreateRestResponseValidator" type="Magento\Payment\Gateway\Validator\ValidatorComposite">
+		<arguments>
+			<argument name="validators" xsi:type="array">
+				<item name="responseCodeValidator" xsi:type="string">CyberSourcePaymentGatewayValidatorRestCreateResponseCodeValidator</item>
+				<item name="statusValidator" xsi:type="string">CyberSource\Payment\Gateway\Validator\RestStatusValidator</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestPaymentsClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_POST</argument>
+			<argument name="requestPath" xsi:type="string">/pts/v2/payments</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayValidatorRestCreateResponseCodeValidator" type="CyberSource\Payment\Gateway\Validator\RestResponseCodeValidator">
+		<arguments>
+			<argument name="validResponseCode" xsi:type="const">CyberSource\Payment\Gateway\Validator\RestResponseCodeValidator::RESPONSE_CODE_CREATED</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestVoidTransactionDetailsHandler" type="CyberSource\Payment\Gateway\Response\Rest\TransactionDetailsHandler">
+		<arguments>
+			<argument name="shouldCloseTransaction" xsi:type="boolean">true</argument>
+			<argument name="shouldCloseParentTransaction" xsi:type="boolean">true</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestSettlementRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="partnerInformationBuilder" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PartnerInformationBuilder</item>
+				<item name="orderItemsInformation" xsi:type="string">CyberSourcePaymentGatewayRestAuthorizationItemsDataBuilder</item>
+				<item name="paymentInformation" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PaymentDataBuilder</item>
+				<item name="captureId" xsi:type="string">CyberSourcePaymentGatewayRestCapturesUriBuilder</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestCapturesUriBuilder" type="CyberSource\Payment\Gateway\Request\Rest\OperationBuilder">
+		<arguments>
+			<argument name="operationName" xsi:type="string">captures</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestRefundRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="partnerInformationBuilder" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PartnerInformationBuilder</item>
+				<item name="orderItemsInformation" xsi:type="string">CyberSourcePaymentGatewayRestAuthorizationItemsDataBuilder</item>
+				<item name="paymentInformation" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PaymentDataBuilder</item>
+				<item name="refundId" xsi:type="string">CyberSourcePaymentGatewayRestRefundsUriBuilder</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestRefundsUriBuilder" type="CyberSource\Payment\Gateway\Request\Rest\OperationBuilder">
+		<arguments>
+			<argument name="operationName" xsi:type="string">refunds</argument>
+		</arguments>
+	</virtualType>
+	<!-- cancel command -->
+	<virtualType name="CyberSourcePaymentGatewayCancelCommand" type="CyberSourcePaymentGatewayRestBaseCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSourcePaymentGatewayRestCancelRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSourcePaymentGatewayCreateRestResponseValidator</argument>
+			<argument name="client" xsi:type="object">CyberSourcePaymentGatewayRestPaymentsClient</argument>
+			<argument name="handler" xsi:type="object">CyberSourcePaymentGatewayRestVoidTransactionDetailsHandler</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\StringTransferFactory</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestCancelRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="partnerInformationBuilder" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PartnerInformationBuilder</item>
+				<item name="orderItemsInformation" xsi:type="string">CyberSourcePaymentGatewayRestAuthorizationItemsDataBuilder</item>
+				<item name="paymentInformation" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PaymentDataBuilder</item>
+				<item name="cancelId" xsi:type="string">CyberSourcePaymentGatewayRestCancelUriBuilder</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestCancelUriBuilder" type="CyberSource\Payment\Gateway\Request\Rest\OperationBuilder">
+		<arguments>
+			<argument name="operationName" xsi:type="string">reversals</argument>
+		</arguments>
+	</virtualType>
+	<type name="Magento\Framework\View\Asset\Minification">
+		<plugin name="cybersource-Payment-minification-plugin" type="CyberSource\Payment\Plugin\MinificationPlugin" />
+	</type>
+	<!-- unified checkout -->
+	<virtualType name="CyberSourcePaymentGatewayFacade" type="Magento\Payment\Model\Method\Adapter">
+		<arguments>
+			<argument name="code" xsi:type="const">\CyberSource\Payment\Model\Ui\ConfigProvider::CODE</argument>
+			<argument name="formBlockType" xsi:type="string">Magento\Payment\Block\Form</argument>
+			<argument name="infoBlockType" xsi:type="string">Magento\Payment\Block\Info</argument>
+			<argument name="valueHandlerPool" xsi:type="object">CyberSourceSAGatewayValueHandlerPool</argument>
+			<argument name="commandPool" xsi:type="object">CyberSourcePaymentGatewayCommandPool</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourceSAGatewayValueHandlerPool" type="Magento\Payment\Gateway\Config\ValueHandlerPool">
+		<arguments>
+			<argument name="handlers" xsi:type="array">
+				<item name="default" xsi:type="string">CyberSourcePaymentConfigValueHandler</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentConfigValueHandler" type="Magento\Payment\Gateway\Config\ConfigValueHandler">
+		<arguments>
+			<argument name="configInterface" xsi:type="object">CyberSource\Payment\Model\Config</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentValidatorPool" type="Magento\Payment\Gateway\Validator\ValidatorPool">
+		<arguments>
+			<argument name="validators" xsi:type="array">
+				<item name="global" xsi:type="string">CyberSourcePaymentGlobalValidator</item>
+				<item name="country" xsi:type="string">CyberSourcePaymentCountryValidator</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayCommandPool" type="Magento\Payment\Gateway\Command\CommandPool">
+		<arguments>
+			<argument name="commands" xsi:type="array">
+				<item name="payerauthSetup" xsi:type="string">CyberSource\Payment\Gateway\Command\PayerAuthSetUpBuilderCommand</item>
+				<item name="generate_capture_context" xsi:type="string">CyberSource\Payment\Gateway\Command\GenerateCaptureContextCommand</item>
+				<item name="get_token_detail" xsi:type="string">CyberSource\Payment\Gateway\Command\TransientDataRetrivalCommand</item>
+				<item name="authorize" xsi:type="string">CyberSourcePaymentGAtewayAuthorizeCommand</item>
+				<item name="capture" xsi:type="string">CyberSourcePaymentGatewayCaptureCommand</item>
+				<item name="sale" xsi:type="string">CyberSourcePaymentGatewaySaleCommand</item>
+				<item name="settlement" xsi:type="string">CyberSourcePaymentGatewaySettlementCommand</item>
+				<item name="refund" xsi:type="string">CyberSourcePaymentGatewayRefundCommand</item>
+				<item name="void" xsi:type="string">CyberSourcePaymentGatewayVoidCommand</item>
+				<item name="cancel" xsi:type="string">CyberSourcePaymentGatewayCancelCommand</item>
+				<item name="vault_authorize" xsi:type="string">CyberSourcePaymentGatewayVaultAuthorizeCommand</item>
+				<item name="vault_sale" xsi:type="string">CyberSourcePaymentGatewayRestVaultSaleCommand</item>
+				<item name="get_event_detail" xsi:type="string">CyberSource\Payment\Gateway\Command\WebhookEventGetCommand</item>
+                <item name="create_webhook_security_keys" xsi:type="string">CyberSource\Payment\Gateway\Command\WebhookKeyCreateCommand</item>
+                <item name="create_webhook" xsi:type="string">CyberSource\Payment\Gateway\Command\WebhookCreateCommand</item>
+                <item name="get_single_webhook_details" xsi:type="string">CyberSource\Payment\Gateway\Command\SingleWebhookDetailsGetCommand</item>
+                <item name="get_all_created_webhook" xsi:type="string">CyberSource\Payment\Gateway\Command\AllWebhookDetailsGetCommand</item>
+                <item name="delete_webhook_subscription" xsi:type="string">CyberSource\Payment\Gateway\Command\DeleteWebhookSubscriptionCommand</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<type name="CyberSource\Payment\Gateway\Command\GenerateCaptureContextCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSource\Payment\Gateway\Request\Rest\GenerateCaptureContextRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSource\Payment\Gateway\Validator\CaptureContextResponseValidator</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\TransferFactory</argument>
+			<argument name="client" xsi:type="object">captureContextClient</argument>
+		</arguments>
+	</type>
+	<virtualType name="captureContextClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_POST</argument>
+			<argument name="requestPath" xsi:type="string">/up/v1/capture-contexts</argument>
+		</arguments>
+	</virtualType>
+	<!-- Webhook Dependency Injection -->
+	<type name="CyberSource\Payment\Gateway\Command\WebhookEventGetCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSource\Payment\Gateway\Request\Rest\GenerateGetEventRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSource\Payment\Gateway\Validator\EventResponseValidator</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\TransferFactory</argument>
+			<argument name="client" xsi:type="object">CyberSourceGetEventHttpRestClient</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourceGetEventHttpRestClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_GET</argument>
+			<argument name="requestPath" xsi:type="string">/notification-subscriptions/v1/products</argument>
+		</arguments>
+	</virtualType>
+	<type name="CyberSource\Payment\Gateway\Command\WebhookKeyCreateCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSource\Payment\Gateway\Request\Rest\GenerateWebhookKeysRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSource\Payment\Gateway\Validator\WebhookKeysResponseValidator</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\TransferFactory</argument>
+			<argument name="client" xsi:type="object">CyberSourceCreateWebhookKeyHttpRestClient</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourceCreateWebhookKeyHttpRestClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_POST</argument>
+			<argument name="requestPath" xsi:type="string">/kms/egress/v2/keys-sym</argument>
+		</arguments>
+	</virtualType>
+	<type name="CyberSource\Payment\Gateway\Command\WebhookCreateCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSource\Payment\Gateway\Request\Rest\GenerateWebhookRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSource\Payment\Gateway\Validator\WebhookResponseValidator</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\TransferFactory</argument>
+			<argument name="client" xsi:type="object">CyberSourceCreateWebhookHttpRestClient</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourceCreateWebhookHttpRestClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_POST</argument>
+			<argument name="requestPath" xsi:type="string">/notification-subscriptions/v1/webhooks</argument>
+		</arguments>
+	</virtualType>
+	<type name="CyberSource\Payment\Gateway\Command\SingleWebhookDetailsGetCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSource\Payment\Gateway\Request\Rest\GenerateSingleWebhookDetailsRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSource\Payment\Gateway\Validator\SingleWebhookDetailsResponseValidator</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\TransferFactory</argument>
+			<argument name="client" xsi:type="object">CyberSourceGetSingleWebhookDetailsHttpRestClient</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourceGetSingleWebhookDetailsHttpRestClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_GET</argument>
+			<argument name="requestPath" xsi:type="string">/notification-subscriptions/v1/webhooks</argument>
+		</arguments>
+	</virtualType>
+	<type name="CyberSource\Payment\Gateway\Command\AllWebhookDetailsGetCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSource\Payment\Gateway\Request\Rest\GenerateAllWebhookDetailsRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSource\Payment\Gateway\Validator\AllWebhookDetailsResponseValidator</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\TransferFactory</argument>
+			<argument name="client" xsi:type="object">CyberSourceGetAllWebhookDetailsHttpRestClient</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourceGetAllWebhookDetailsHttpRestClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_GET</argument>
+			<argument name="requestPath" xsi:type="string">/notification-subscriptions/v1/webhooks</argument>
+		</arguments>
+	</virtualType>
+	<type name="CyberSource\Payment\Gateway\Command\DeleteWebhookSubscriptionCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSource\Payment\Gateway\Request\Rest\DeleteWebhookSubscriptionRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSource\Payment\Gateway\Validator\DeleteWebhookSubscriptionResponseValidator</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\TransferFactory</argument>
+			<argument name="client" xsi:type="object">CyberSourceDeleteWebhookSubscriptionHttpRestClient</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourceDeleteWebhookSubscriptionHttpRestClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_DELETE</argument>
+			<argument name="requestPath" xsi:type="string">/notification-subscriptions/v1/webhooks</argument>
+		</arguments>
+	</virtualType>
+	<type name="CyberSource\Payment\Gateway\Command\TransientDataRetrivalCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSource\Payment\Gateway\Request\Rest\GenerateDataRetrivalRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSource\Payment\Gateway\Validator\DataRetrivalResponseValidator</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\TransferFactory</argument>
+			<argument name="client" xsi:type="object">CyberSourceDataRetriveHttpRestClient</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourceDataRetriveHttpRestClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_GET</argument>
+			<argument name="requestPath" xsi:type="string">/up/v1/payment-details</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentCommandManager" type="Magento\Payment\Gateway\Command\CommandManager">
+		<arguments>
+			<argument name="commandPool" xsi:type="object">CyberSourcePaymentGatewayCommandPool</argument>
+		</arguments>
+	</virtualType>
+	<type name="CyberSource\Payment\Controller\Frontend\CaptureContextRequest">
+		<arguments>
+			<argument name="commandManager" xsi:type="object">CyberSourcePaymentCommandManager</argument>
+			<argument name="sessionManager" xsi:type="object">Magento\Checkout\Model\Session</argument>
+		</arguments>
+	</type>
+	<type name="CyberSource\Payment\Controller\Frontend\PaSetup">
+        <arguments>
+            <argument name="commandManager" xsi:type="object">CyberSourcePaymentCommandManager</argument>
+            <argument name="sessionManager" xsi:type="object">Magento\Checkout\Model\Session</argument>
+        </arguments>
+    </type>
+	<type name="CyberSource\Payment\Controller\Frontend\TransientDataRetrival">
+		<arguments>
+			<argument name="commandManager" xsi:type="object">CyberSourcePaymentCommandManager</argument>
+			<argument name="sessionManager" xsi:type="object">Magento\Checkout\Model\Session</argument>
+		</arguments>
+	</type>
+	<type name="CyberSource\Payment\Gateway\Validator\PaEnrolledValidator">
+		<arguments>
+			<argument name="commandManager" xsi:type="object">CyberSourcePaymentCommandManager</argument>
+			<argument name="sessionManager" xsi:type="object">Magento\Checkout\Model\Session</argument>
+		</arguments>
+	</type>
+	<type name="CyberSource\Payment\Observer\SaveConfigObserver">
+		<arguments>
+			<argument name="commandManager" xsi:type="object">CyberSourcePaymentCommandManager</argument>
+			<argument name="sessionManager" xsi:type="object">Magento\Checkout\Model\Session</argument>
+		</arguments>
+	</type>
+	<type name="CyberSource\Payment\Plugin\Controller\Cards\DeleteTokenPlugin">
+		<arguments>
+			<argument name="commandManager" xsi:type="object">CyberSourcePaymentCommandManager</argument>
+			<argument name="sessionManager" xsi:type="object">Magento\Checkout\Model\Session</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourcePaymentGatewayBaseCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+		<arguments>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\TransferFactory</argument>
+			<argument name="errorMessageMapper" xsi:type="object">CyberSource\Payment\Gateway\ErrorMapper\ConfigurableMapper</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayBaseCommand1" type="Magento\Payment\Gateway\Command\GatewayCommand">
+		<arguments>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\StringTransferFactory</argument>
+			<argument name="errorMessageMapper" xsi:type="object">CyberSource\Payment\Gateway\ErrorMapper\ConfigurableMapper</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGAtewayAuthorizeCommand" type="CyberSourcePaymentGatewayBaseCommand1">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSourcePaymentGatewayAuthorizationRequest</argument>
+			<argument name="handler" xsi:type="object">CyberSourcePaymentGatewayAuthorizationHandler</argument>
+			<argument name="validator" xsi:type="object">CyberSourcePaymentGatewayCreateResponseValidator</argument>
+			<argument name="client" xsi:type="object">CyberSourcePaymentGatewayPaymentsClient</argument>
+		</arguments>
+	</virtualType>
+	<!-- capture command -->
+	<virtualType name="CyberSourcePaymentGatewayCaptureCommand" type="CyberSource\Payment\Gateway\Command\CaptureStrategyCommand">
+		<arguments>
+			<argument name="commandPool" xsi:type="object">CyberSourcePaymentGatewayCommandPool</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewaySaleCommand" type="CyberSourcePaymentGAtewayAuthorizeCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSourcePaymentGatewaySaleRequest</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewaySettlementCommand" type="CyberSourcePaymentGatewayBaseCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSourcePaymentGatewayRestSettlementRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSourcePaymentGatewayCreateResponseValidator</argument>
+			<argument name="client" xsi:type="object">CyberSourcePaymentGatewayPaymentsClient</argument>
+			<argument name="handler" xsi:type="object">CyberSource\Payment\Gateway\Response\Rest\CaptureResponseHandler</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\StringTransferFactory</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewaySaleRequest" type="CyberSourcePaymentGatewayAuthorizationRequest">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="captureBuilder" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\CaptureBuilder</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayAuthorizationRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="partnerInformationBuilder" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PartnerInformationBuilder</item>
+				<item name="tokenBuilderStrategy" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\BuilderStrategy</item>
+				<item name="transientToken" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\TransientTokenBuilder</item>
+				<item name="paymentInformation" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PaymentDataBuilder</item>
+				<item name="addressInformation" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\AddressDataBuilder</item>
+				<item name="orderItemsInformation" xsi:type="string">CyberSourcePaymentGatewayRestAuthorizationItemsDataBuilder</item>
+				<item name="paService" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PayerAuthStrategy</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayAuthorizationHandler" type="Magento\Payment\Gateway\Response\HandlerChain">
+		<arguments>
+			<argument name="handlers" xsi:type="array">
+				<item name="transactionDetails" xsi:type="string">CyberSourcePaymentGatewayAuthorizationTransactionDetailsHandler</item>
+				<item name="subscription_create" xsi:type="string">CyberSource\Payment\Gateway\Response\Rest\SubscriptionCreateHandler</item>
+				<item name="microformTokenHandler" xsi:type="string">CyberSource\Payment\Gateway\Response\Rest\TokenHandler</item>
+				<item name="vault_details" xsi:type="string">CyberSource\Payment\Gateway\Response\Rest\VaultDetailsHandler</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayAuthorizationTransactionDetailsHandler" type="CyberSource\Payment\Gateway\Response\Rest\TransactionDetailsHandler">
+		<arguments>
+			<argument name="shouldCloseTransaction" xsi:type="boolean">false</argument>
+			<argument name="shouldCloseParentTransaction" xsi:type="boolean">false</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayCreateResponseValidator" type="Magento\Payment\Gateway\Validator\ValidatorComposite">
+		<arguments>
+			<argument name="validators" xsi:type="array">
+				<item name="responseCodeValidator" xsi:type="string">CyberSourcePaymentGatewayValidatorRestCreateResponseCodeValidator</item>
+				<item name="statusValidator" xsi:type="string">CyberSource\Payment\Gateway\Validator\RestStatusValidator</item>
+				<item name="3dsResponseValidator" xsi:type="string">CyberSource\Payment\Gateway\Validator\PaEnrolledValidator</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayPaymentsClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_POST</argument>
+			<argument name="requestPath" xsi:type="string">/pts/v2/payments</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestAuthorizationItemsDataBuilder" type="CyberSource\Payment\Gateway\Request\Rest\OrderItemsBuilder">
+		<arguments>
+			<argument name="objectName" xsi:type="string">order</argument>
+			<argument name="filter" xsi:type="object">CyberSourcePaymentGatewayStringProductNameFilter</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayStringProductNameFilter" type="CyberSource\Payment\StringUtils\FilterChain">
+		<arguments>
+			<argument name="filters" xsi:type="array">
+				<item name="alphanumFilter" xsi:type="string">CyberSource\Payment\StringUtils\AlphaNumFilter</item>
+				<item name="maxLengthFilter" xsi:type="string">CyberSource\Payment\StringUtils\MaxLengthFilter</item>
+				<item name="trimFilter" xsi:type="string">CyberSource\Payment\StringUtils\TrimFilter</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<!-- refund command -->
+	<virtualType name="CyberSourcePaymentGatewayRefundCommand" type="CyberSourcePaymentGatewayBaseCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSourcePaymentGatewayRestRefundRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSourcePaymentGatewayCreateResponseValidator</argument>
+			<argument name="client" xsi:type="object">CyberSourcePaymentGatewayPaymentsClient</argument>
+			<argument name="handler" xsi:type="object">CyberSource\Payment\Gateway\Response\Rest\RefundResponseHandler</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\StringTransferFactory</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestRefundRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="partnerInformationBuilder" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PartnerInformationBuilder</item>
+				<item name="orderItemsInformation" xsi:type="string">CyberSourcePaymentGatewayRestAuthorizationItemsDataBuilder</item>
+				<item name="paymentInformation" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PaymentDataBuilder</item>
+				<item name="refundId" xsi:type="string">CyberSourcePaymentGatewayRestRefundsUriBuilder</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestRefundsUriBuilder" type="CyberSource\Payment\Gateway\Request\Rest\OperationBuilder">
+		<arguments>
+			<argument name="operationName" xsi:type="string">refunds</argument>
+		</arguments>
+	</virtualType>
+	<!-- void command -->
+	<virtualType name="CyberSourcePaymentGatewayVoidCommand" type="CyberSourcePaymentGatewayRestBaseCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSourcePaymentGatewayRestVoidRequest</argument>
+			<argument name="validator" xsi:type="object">CyberSourcePaymentGatewayCreateResponseValidator</argument>
+			<argument name="client" xsi:type="object">CyberSourcePaymentGatewayRestPaymentsClient</argument>
+			<argument name="handler" xsi:type="object">CyberSourcePaymentGatewayVoidTransactionDetailsHandler</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\StringTransferFactory</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestVoidRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="partnerInformationBuilder" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PartnerInformationBuilder</item>
+				<item name="orderItemsInformation" xsi:type="string">CyberSourcePaymentGatewayRestAuthorizationItemsDataBuilder</item>
+				<item name="paymentInformation" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PaymentDataBuilder</item>
+				<item name="voidId" xsi:type="string">CyberSourcePaymentGatewayRestVoidsUriBuilder</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayRestVoidsUriBuilder" type="CyberSource\Payment\Gateway\Request\Rest\OperationBuilder">
+		<arguments>
+			<argument name="operationName" xsi:type="string">voids</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentGatewayVoidTransactionDetailsHandler" type="CyberSource\Payment\Gateway\Response\Rest\TransactionDetailsHandler">
+		<arguments>
+			<argument name="shouldCloseTransaction" xsi:type="boolean">true</argument>
+			<argument name="shouldCloseParentTransaction" xsi:type="boolean">true</argument>
+		</arguments>
+	</virtualType>
+	<!-- Vault -->
+	<virtualType name="CyberSourcePaymentGatewayVaultAuthorizeCommand" type="CyberSourcePaymentGAtewayAuthorizeCommand" />
+	<virtualType name="CyberSourcePaymentGatewayRestVaultSaleCommand" type="CyberSourcePaymentGatewaySaleCommand" />
+	<virtualType name="CyberSourcePaymentVaultPaymentConfig" type="Magento\Payment\Gateway\Config\Config">
+		<arguments>
+			<argument name="methodCode" xsi:type="const">CyberSource\Payment\Model\Ui\ConfigProvider::CC_VAULT_CODE</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentCreditCardVaultFacade" type="Magento\Vault\Model\Method\Vault">
+		<arguments>
+			<argument name="config" xsi:type="object">CyberSourcePaymentVaultPaymentConfig</argument>
+			<argument name="valueHandlerPool" xsi:type="object">CyberSourcePaymentVaultPaymentValueHandlerPool</argument>
+			<argument name="vaultProvider" xsi:type="object">CyberSourcePaymentGatewayFacade</argument>
+			<argument name="code" xsi:type="const">CyberSource\Payment\Model\Ui\ConfigProvider::CC_VAULT_CODE</argument>
+			<argument name="commandManagerPool" xsi:type="object">CyberSourcePaymentCcVaultCommandManagerPool</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentVaultPaymentValueHandlerPool" type="VaultPaymentValueHandlerPool">
+		<arguments>
+			<argument name="handlers" xsi:type="array">
+				<item name="default" xsi:type="string">CyberSourcePaymentVaultPaymentValueHandler</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentVaultPaymentValueHandler" type="VaultPaymentDefaultValueHandler">
+		<arguments>
+			<argument name="configInterface" xsi:type="object">CyberSourcePaymentVaultPaymentConfig</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="CyberSourcePaymentCcVaultCommandManagerPool" type="Magento\Payment\Gateway\Command\CommandManagerPool">
+		<arguments>
+			<argument name="executors" xsi:type="array">
+				<item name="unifiedcheckout" xsi:type="string">CyberSourcePaymentCommandManager</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<!-- using for tokenizations -->
+	<type name="CyberSource\Payment\Gateway\Request\Rest\BuilderStrategy">
+		<arguments>
+			<argument name="microformBuilder" xsi:type="object">CyberSourcePaymentGatewayRequestFlexBuilder</argument>
+			<argument name="standardBuilder" xsi:type="object">CyberSourcePaymentGatewayRequestNonFlexBuilder</argument>
+		</arguments>
+	</type>
+	<!-- Runs when storing the card -->
+	<virtualType name="CyberSourcePaymentGatewayRequestFlexBuilder" type="Magento\Payment\Gateway\Request\BuilderComposite">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="microformTokenCreate" xsi:type="string">PaymentStoringCardTransaction</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<!-- Runs when using a stored  card -->
+	<virtualType name="CyberSourcePaymentGatewayRequestNonFlexBuilder" type="Magento\Payment\Gateway\Request\BuilderComposite">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="cardDataBuilder" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\CardDataBuilder</item>
+				<item name="cvnBuilder" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\CvnBuilder</item>
+				<item name="microformTokenCreate" xsi:type="string">PaymentStoredCardTransaction</item>
+				<item name="customerTokenId" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PaymentInfoDataBuilder</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="PaymentStoringCardTransaction" type="CyberSource\Payment\Gateway\Request\Rest\ProcessingInfoDataBuilder">
+		<arguments>
+			<argument name="flag" xsi:type="string">storingcard</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="PaymentStoredCardTransaction" type="CyberSource\Payment\Gateway\Request\Rest\ProcessingInfoDataBuilder">
+		<arguments>
+			<argument name="flag" xsi:type="string">storedcard</argument>
+		</arguments>
+	</virtualType>
+	<!-- Payer Authentication -->
+	<type name="CyberSource\Payment\Gateway\Command\PayerAuthSetUpBuilderCommand">
+		<arguments>
+			<argument name="requestBuilder" xsi:type="object">CyberSourcePaymentPayerAuthSetupRequestBuilder</argument>
+			<argument name="transferFactory" xsi:type="object">CyberSource\Payment\Gateway\Http\StringTransferFactory</argument>
+			<argument name="client" xsi:type="object">PayerAuthSetUpHttpRestClient</argument>
+		</arguments>
+	</type>
+	<virtualType name="CyberSourcePaymentPayerAuthSetupRequestBuilder" type="Magento\Payment\Gateway\Request\BuilderComposite">
+		<arguments>
+			<argument name="builders" xsi:type="array">
+				<item name="requestBuilder" xsi:type="string">CyberSource\Payment\Gateway\Request\Rest\PayerAuthSetupRequestBuilder</item>
+			</argument>
+		</arguments>
+	</virtualType>
+	<virtualType name="PayerAuthSetUpHttpRestClient" type="CyberSource\Payment\Gateway\Http\Client\Rest">
+		<arguments>
+			<argument name="requestMethod" xsi:type="const">Laminas\Http\Request::METHOD_POST</argument>
+			<argument name="requestPath" xsi:type="string">/risk/v1/authentication-setups</argument>
+		</arguments>
+	</virtualType>
+	
+	<type name="CyberSource\Payment\Gateway\Request\Rest\PayerAuthValidateBuilder">
+		<arguments>
+			<argument name="commandPool" xsi:type="object">CyberSourcePaymentGatewayCommandPool</argument>
+		</arguments>
+	</type>
+	<type name="CyberSource\Payment\Observer\DataAssignObserver">
+		<arguments>
+			<argument name="session" xsi:type="object">Magento\Checkout\Model\Session</argument>
+		</arguments>
+	</type>
+	<type name="Magento\Framework\Webapi\ErrorProcessor">
+		<plugin name="cybersource_webapi_error_processor" type="CyberSource\Payment\Webapi\Error\ProcessorPlugin" sortOrder="1" />
+	</type>
+	<type name="Magento\Checkout\Api\GuestPaymentInformationManagementInterface">
+		<plugin name="cybersource_save_quote_guest_checkout" type="CyberSource\Payment\Plugin\Checkout\Model\GuestPaymentInformationManagementInterfacePlugin" />
+	</type>
+	<type name="Magento\Quote\Model\Quote\Payment\ToOrderPayment">
+		<plugin name="cybersource_convert_cca" type="CyberSource\Payment\Model\Quote\Payment\ToOrderPaymentPlugin" />
+	</type>
+	<type name="Magento\Vault\Api\PaymentTokenRepositoryInterface">
+        <plugin name="cybersource-payment-token-repository-plugin" type="CyberSource\Payment\Plugin\PaymentTokenRepositoryPlugin" />
+    </type>
+	<type name="CyberSource\Payment\Plugin\PaymentTokenRepositoryPlugin">
+        <arguments>
+            <argument name="checkoutSession" xsi:type="object">Magento\Checkout\Model\Session\Proxy</argument>
+            <argument name="config" xsi:type="object">CyberSource\Payment\Model\Config</argument>
+            <argument name="configKey" xsi:type="const">CyberSource\Payment\Model\Config::KEY_MERCHANT_ID</argument>
+            <argument name="methodCode" xsi:type="const">CyberSource\Payment\Model\Ui\ConfigProvider::CODE</argument>
+        </arguments>
+    </type>
+</config>

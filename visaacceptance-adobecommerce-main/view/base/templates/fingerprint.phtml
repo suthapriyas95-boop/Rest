@@ -1,0 +1,8 @@
+<?php if ($this->isFingerprintEnabled()) : ?>
+    <?php if ($block->getOrgId() !== null) : ?>
+        <script type="text/javascript" src="<?= $block->escapeUrl($block->getJsUrl()) ?></script>
+    <?php endif; ?>
+    <noscript>
+        <iframe style="width: 100px; height: 100px; border: 0; position: absolute; top: -5000px;" src="<?= $block->escapeUrl($block->getIframeUrl()) ?>"></iframe>
+    </noscript>
+<?php endif; ?>
