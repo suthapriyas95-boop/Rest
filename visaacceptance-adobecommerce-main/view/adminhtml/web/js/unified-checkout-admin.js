@@ -17,7 +17,10 @@ define([
             // bind to admin changePaymentMethod event
             var self = this;
             jQuery('#edit_form').on('changePaymentMethod', function (event, method) {
+                console.log('[UC Admin] changePaymentMethod fired for', method);
                 if (method === self.methodCode) {
+                    // Ensure form is visible before proceeding
+                    jQuery('#payment_form_' + self.methodCode).show();
                     // intercept submitOrder.cybersource which is already bound
                     // replace it to launch UC before submitting
                     jQuery('#edit_form')
@@ -54,6 +57,8 @@ define([
                     var selected = jQuery('#edit_form').find(':radio[name="payment[method]"]:checked').val();
                     if (selected === self.methodCode) {
                         console.log('[UC Admin] method already selected on load, launching UC');
+                        // Ensure form is visible
+                        jQuery('#payment_form_' + self.methodCode).show();
                         if (jQuery('input[name="payment[token]"]').length === 0 && !window.__cybersource_transient_ready) {
                             self.launchUC(false);
                         }
@@ -66,6 +71,8 @@ define([
 
         launchUC: function (submitAfter) {
             var self = this;
+            // Ensure form is visible before fetching context
+            jQuery('#payment_form_' + this.methodCode).show();
             // Fetch capture context
             console.log('[UC Admin] fetch capture context:', this.captureContextUrl);
             jQuery.post(this.captureContextUrl, {})
