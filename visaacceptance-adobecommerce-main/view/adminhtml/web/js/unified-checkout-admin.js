@@ -14,55 +14,68 @@ define([
 
     UnifiedAdmin.prototype = {
         init: function () {
-            // bind to admin changePaymentMethod event
             var self = this;
+            var handleSelection = function (method) {
+                if (method !== self.methodCode) {
+                    return;
+                }
+                // Ensure form is visible before proceeding
+                jQuery('#payment_form_' + self.methodCode).show();
+                // intercept submitOrder.cybersource which is already bound
+                // replace it to launch UC before submitting
+                jQuery('#edit_form')
+                    .off('submitOrder.cybersource')
+                    .on('submitOrder.cybersource', function (e) {
+                        e.preventDefault();
+                        // If transient already collected, submit immediately
+                        if (window.__cybersource_transient_ready) {
+                            if (window.order && typeof order._realSubmit === 'function') {
+                                order._realSubmit();
+                            } else {
+                                console.error('[UC Admin] order._realSubmit is not available');
+                            }
+                            return;
+                        }
+                        // Launch Unified Checkout and submit when ready
+                        self.launchUC(true);
+                    });
+
+                // If there are no stored tokens, proactively launch UC so admin
+                // can enter card details before clicking Save.
+                if (jQuery('input[name="payment[token]"]').length === 0 && !window.__cybersource_transient_ready) {
+                    // don't auto-submit after collecting transient
+                    self.launchUC(false);
+                }
+            };
+
+            // bind to admin changePaymentMethod event (jQuery and Prototype)
             jQuery('#edit_form').on('changePaymentMethod', function (event, method) {
                 console.log('[UC Admin] changePaymentMethod fired for', method);
-                if (method === self.methodCode) {
-                    // Ensure form is visible before proceeding
-                    jQuery('#payment_form_' + self.methodCode).show();
-                    // intercept submitOrder.cybersource which is already bound
-                    // replace it to launch UC before submitting
-                    jQuery('#edit_form')
-                        .off('submitOrder.cybersource')
-                        .on('submitOrder.cybersource', function (e) {
-                            e.preventDefault();
-                            // If transient already collected, submit immediately
-                            if (window.__cybersource_transient_ready) {
-                                if (window.order && typeof order._realSubmit === 'function') {
-                                    order._realSubmit();
-                                } else {
-                                    console.error('[UC Admin] order._realSubmit is not available');
-                                }
-                                return;
-                            }
-                            // Launch Unified Checkout and submit when ready
-                            self.launchUC(true);
-                        });
-
-                    // If there are no stored tokens, proactively launch UC so admin
-                    // can enter card details before clicking Save.
-                    if (jQuery('input[name="payment[token]"]').length === 0) {
-                        // don't auto-submit after collecting transient
-                        self.launchUC(false);
-                    }
-                }
+                handleSelection(method);
             });
-            console.log('[UC Admin] initialized, waiting for changePaymentMethod events');
+
+            if (document.observe) {
+                document.observe('payment-method:switched', function (event) {
+                    var method = event && event.memo && event.memo.method;
+                    console.log('[UC Admin] Prototype payment-method:switched', method);
+                    handleSelection(method);
+                });
+            }
+
+            // Fallback to radio change for environments where custom events do not fire
+            jQuery('#edit_form').on('change', ':radio[name="payment[method]"]', function () {
+                var method = jQuery(this).val();
+                console.log('[UC Admin] radio change detected for', method);
+                handleSelection(method);
+            });
+            console.log('[UC Admin] initialized, waiting for payment method selection');
 
             // If the payment method is already selected on load, trigger UC
             // (admin create page can load with method preselected).
             setTimeout(function () {
                 try {
                     var selected = jQuery('#edit_form').find(':radio[name="payment[method]"]:checked').val();
-                    if (selected === self.methodCode) {
-                        console.log('[UC Admin] method already selected on load, launching UC');
-                        // Ensure form is visible
-                        jQuery('#payment_form_' + self.methodCode).show();
-                        if (jQuery('input[name="payment[token]"]').length === 0 && !window.__cybersource_transient_ready) {
-                            self.launchUC(false);
-                        }
-                    }
+                    handleSelection(selected);
                 } catch (e) {
                     console.error('[UC Admin] failed to auto-launch on load', e);
                 }
