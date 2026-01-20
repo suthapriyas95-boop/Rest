@@ -19,8 +19,20 @@ define([
                 if (method !== self.methodCode) {
                     return;
                 }
+                var tokenSelected = jQuery('input[name="payment[token]"]:checked').filter(function () {
+                    return !!jQuery(this).val();
+                }).length > 0;
+                var hasTokens = jQuery('input[name="payment[token]"]').filter(function () {
+                    return !!jQuery(this).val();
+                }).length > 0;
                 // Ensure form is visible before proceeding
                 jQuery('#payment_form_' + self.methodCode).show();
+                if (tokenSelected) {
+                    // Vault flow: do not hijack submit; let Magento submit with vault token.
+                    jQuery('#edit_form').off('submitOrder.cybersource');
+                    return;
+                }
+
                 // intercept submitOrder.cybersource which is already bound
                 // replace it to launch UC before submitting
                 jQuery('#edit_form')
@@ -40,9 +52,9 @@ define([
                         self.launchUC(true);
                     });
 
-                // If there are no stored tokens, proactively launch UC so admin
+                // If there are no stored tokens (or none selected), proactively launch UC so admin
                 // can enter card details before clicking Save.
-                if (jQuery('input[name="payment[token]"]').length === 0 && !window.__cybersource_transient_ready) {
+                if ((!hasTokens || !tokenSelected) && !window.__cybersource_transient_ready) {
                     // don't auto-submit after collecting transient
                     self.launchUC(false);
                 }

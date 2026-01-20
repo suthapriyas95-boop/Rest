@@ -5,7 +5,11 @@
         <referenceBlock name="order_create_billing_method_form">
             <action method="setMethodFormTemplate">
                 <argument name="method" xsi:type="string">unifiedcheckout</argument>
-                <argument name="template" xsi:type="string">CyberSource_Payment::cybersource/info.phtml</argument>
+                <argument name="template" xsi:type="string">CyberSource_Payment::cybersource/newcard.phtml</argument>
+            </action>
+            <action method="setMethodFormTemplate">
+                <argument name="method" xsi:type="string">unifiedcheckout_vault</argument>
+                <argument name="template" xsi:type="string">CyberSource_Payment::cybersource/vault.phtml</argument>
             </action>
         </referenceBlock>
     </body>

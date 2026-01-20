@@ -1,0 +1,34 @@
+<?php
+$code = $block->escapeHtml($block->getMethodCode());
+$method = $block->getMethod();
+/** @var CyberSource\Payment\Helper\Data $helper */
+$helper = $this->helper('CyberSource\Payment\Helper\Data');
+$tokens = $helper->getTokens($method->getStore());
+?>
+
+<fieldset class="admin__fieldset payment-method" id="payment_form_<?= $escaper->escapeHtmlAttr($code) ?>">
+    <div class="admin__field _required">
+        <div class="admin__field-control">
+            <?php if (!empty($tokens)) : ?>
+            <table class="admin__table-secondary">
+                <?php foreach ($tokens as $token) : ?>
+                    <tr>
+                        <th><?php echo $block->escapeHtml(__('Token')); ?></th>
+                        <td><input type="radio" name="payment[token]" value="<?php echo $block->escapeHtml($token['token_id']); ?>">
+                            <?php echo $block->escapeHtml($token['cc_number']); ?>
+                        </td>
+                    </tr>
+                    <?php if ($helper->getGatewayConfig()->isCVVEnabled()) : ?>
+                        <tr>
+                            <th><?php echo $block->escapeHtml(__('CVV')); ?></th>
+                            <td><input type="number" name="payment[cvv]" maxlength="4"></td>
+                        </tr>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </table>
+            <?php else : ?>
+                <?php echo $block->escapeHtml(__('No Tokens for this customer')); ?>
+            <?php endif; ?>
+        </div>
+    </div>
+</fieldset>
