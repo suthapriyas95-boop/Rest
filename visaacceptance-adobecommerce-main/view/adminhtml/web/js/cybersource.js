@@ -15,7 +15,7 @@
 
     window.Cybersource = Class.create();
     Cybersource.prototype = {
-        initialize : function (methodCode, controller, orderSaveUrl, nativeAction) {
+        initialize : function (methodCode, controller, orderSaveUrl, nativeAction, captureContextUrl, tokenFieldSelector) {
             var prepare = function (event, method) {
                 if (method === 'unifiedcheckout') {
                     this.preparePayment();
@@ -28,6 +28,8 @@
             this.controller = controller;
             this.orderSaveUrl = orderSaveUrl;
             this.nativeAction = nativeAction;
+            this.captureContextUrl = captureContextUrl;
+            this.tokenFieldSelector = tokenFieldSelector;
             this.code = methodCode;
             this.inputs = ['cc_type', 'cc_number', 'expiration', 'expiration_yr', 'cc_cid'];
             this.headers = [];
@@ -37,6 +39,9 @@
             this.successUrl = false;
             this.hasError = false;
             this.tmpForm = false;
+            this.ucInitialized = false;
+            this.paymentToken = null;
+            this.submitAfterToken = false;
 
             this.onSubmitAdminOrder = this.submitAdminOrder.bindAsEventListener(this);
 
@@ -82,6 +87,125 @@
             jQuery('#edit_form')
             .off('submitOrder')
             .on('submitOrder.cybersource', this.submitAdminOrder.bind(this));
+            this.initUnifiedCheckout();
+        },
+
+        initUnifiedCheckout : function () {
+            if (this.ucInitialized || !this.captureContextUrl) {
+                return;
+            }
+            this.ucInitialized = true;
+
+            jQuery('body').trigger('processStart');
+            jQuery.ajax({
+                method: 'POST',
+                url: this.captureContextUrl,
+                data: {}
+            }).done(function (response) {
+                if (!response || response.error_msg) {
+                    this.showError(response && response.error_msg ? response.error_msg : 'Unable to load payment form.');
+                    return;
+                }
+
+                var libraryUrl = response.unified_checkout_client_library;
+                var captureContext = response.captureContext;
+
+                if (!libraryUrl || !captureContext) {
+                    this.showError('Unable to load payment form.');
+                    return;
+                }
+
+                fetch(libraryUrl)
+                    .then(function (res) { return res.text(); })
+                    .then(function (content) { return this.generateSRI(content); }.bind(this))
+                    .then(function (hash) {
+                        require.config({
+                            map: {
+                                '*': {
+                                    uc: libraryUrl
+                                }
+                            },
+                            onNodeCreated: function (node) {
+                                node.setAttribute('integrity', hash);
+                                node.setAttribute('crossorigin', 'anonymous');
+                            }
+                        });
+
+                        require(['uc'], function (uc) {
+                            var showArgs;
+                            if (response.layoutSelected === 'SIDEBAR') {
+                                showArgs = {
+                                    containers: {
+                                        paymentSelection: '#buttonPaymentListContainer'
+                                    }
+                                };
+                                this.handleUnifiedPayments(uc, captureContext, showArgs, true);
+                            } else {
+                                showArgs = {
+                                    containers: {
+                                        paymentSelection: '#buttonPaymentListContainer',
+                                        paymentScreen: '#embeddedPaymentContainer'
+                                    }
+                                };
+                                this.handleUnifiedPayments(uc, captureContext, showArgs, false);
+                            }
+                        }.bind(this));
+                    }.bind(this))
+                    .catch(function () {
+                        this.showError('Unable to load payment form.');
+                    }.bind(this));
+            }.bind(this)).fail(function () {
+                this.showError('Unable to load payment form.');
+            }.bind(this)).always(function () {
+                jQuery('body').trigger('processStop');
+            });
+        },
+
+        handleUnifiedPayments : function (uc, cc, showArgs, isSidebar) {
+            var self = this;
+            uc.Accept(cc)
+                .then(function (accept) {
+                    return accept.unifiedPayments(isSidebar ? true : false);
+                })
+                .then(function (up) {
+                    return up.show(showArgs);
+                })
+                .then(function (tt) {
+                    self.setPaymentToken(tt);
+                })
+                .catch(function () {
+                    self.showError('Unable to process your request. Please try again later.');
+                });
+        },
+
+        setPaymentToken : function (tt) {
+            this.paymentToken = tt;
+            var encodedToken;
+            try {
+                encodedToken = btoa(tt);
+            } catch (e) {
+                encodedToken = tt;
+            }
+
+            if (this.tokenFieldSelector) {
+                jQuery(this.tokenFieldSelector).val(encodedToken);
+            }
+
+            if (this.submitAfterToken) {
+                this.submitAfterToken = false;
+                window.setTimeout(function () {
+                    this.submitAdminOrder();
+                }.bind(this), 0);
+            }
+        },
+
+        generateSRI : async function (content) {
+            var encoder = new TextEncoder();
+            var data = encoder.encode(content);
+            var hashBuffer = await crypto.subtle.digest('SHA-384', data);
+            var hashArray = Array.from(new Uint8Array(hashBuffer));
+            var hashBase64 = btoa(String.fromCharCode.apply(null, hashArray));
+            return 'sha384-' + hashBase64;
         },
 
         showError : function (msg) {
@@ -142,6 +266,11 @@
                 paymentMethodEl = editForm.find(':radio[name="payment[method]"]:checked');
                 this.hasError = false;
                 if (paymentMethodEl.val() == this.code) {
+                    if (!this.paymentToken && (!this.tokenFieldSelector || !jQuery(this.tokenFieldSelector).val())) {
+                        this.submitAfterToken = true;
+                        this.initUnifiedCheckout();
+                        return;
+                    }
                     jQuery('body').trigger('processStart');
                     setLoaderPosition();
                     this.changeInputOptions('disabled', 'disabled');

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace CyberSource\Payment\Gateway\Request\Rest;
 
 use Magento\Framework\Url\DecoderInterface;
+use CyberSource\Payment\Gateway\Helper\SubjectReader;
 
 class TransientTokenBuilder implements \Magento\Payment\Gateway\Request\BuilderInterface
 {
@@ -24,15 +25,23 @@ class TransientTokenBuilder implements \Magento\Payment\Gateway\Request\BuilderI
     protected $urlDecoder;
 
     /**
+     * @var \CyberSource\Payment\Gateway\Helper\SubjectReader
+     */
+    private $subjectReader;
+
+    /**
      * @param \Magento\Checkout\Model\Session $checkoutSession
      * @param \Magento\Framework\Url\DecoderInterface $urlDecoder
+     * @param \CyberSource\Payment\Gateway\Helper\SubjectReader $subjectReader
      */
     public function __construct(
         \Magento\Checkout\Model\Session $checkoutSession,
-        DecoderInterface $urlDecoder
+        DecoderInterface $urlDecoder,
+        SubjectReader $subjectReader
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->urlDecoder = $urlDecoder;
+        $this->subjectReader = $subjectReader;
     }
 
     /**
@@ -43,9 +52,20 @@ class TransientTokenBuilder implements \Magento\Payment\Gateway\Request\BuilderI
      */
     public function build(array $buildSubject)
     {
-        $quote = $this->checkoutSession->getQuote();
-        $payment = $quote->getPayment();
-        $paymentToken = $payment->getAdditionalInformation('paymentToken');
+        $payment = null;
+        try {
+            $paymentDO = $this->subjectReader->readPayment($buildSubject);
+            $payment = $paymentDO->getPayment();
+        } catch (\InvalidArgumentException $e) {
+            $payment = null;
+        }
+
+        if ($payment === null) {
+            $quote = $this->checkoutSession->getQuote();
+            $payment = $quote ? $quote->getPayment() : null;
+        }
+
+        $paymentToken = $payment ? $payment->getAdditionalInformation('paymentToken') : null;
 
         $request = [];
         if ($paymentToken) {

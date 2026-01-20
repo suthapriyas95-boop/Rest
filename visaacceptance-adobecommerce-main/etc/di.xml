@@ -629,6 +629,9 @@
 	<type name="Magento\Checkout\Api\GuestPaymentInformationManagementInterface">
 		<plugin name="cybersource_save_quote_guest_checkout" type="CyberSource\Payment\Plugin\Checkout\Model\GuestPaymentInformationManagementInterfacePlugin" />
 	</type>
+	<type name="Magento\Payment\Model\Method\AbstractMethod">
+		<plugin name="cybersource_payment_action_admin" type="CyberSource\Payment\Plugin\PaymentActionPlugin" />
+	</type>
 	<type name="Magento\Quote\Model\Quote\Payment\ToOrderPayment">
 		<plugin name="cybersource_convert_cca" type="CyberSource\Payment\Model\Quote\Payment\ToOrderPaymentPlugin" />
 	</type>

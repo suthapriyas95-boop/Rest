@@ -79,30 +79,11 @@ class PaymentInfoDataBuilder implements \Magento\Payment\Gateway\Request\Builder
 
         if (!empty($token)) {
             $request['paymentInformation'] =  [
-                'customer' => [
-                    'id' => $token,
-                ]
-            ];
 
-            // If we have expiration stored on the payment (from transient data retrieval),
-            // include it for tokenized-card flows so the payments API has expiry data.
-            $expDate = $payment->getAdditionalInformation(self::KEY_EXP_DATE) ?? null;
-            if ($expDate) {
-                list($expMonth, $expYear) = array_pad(explode('-', $expDate ?? ''), 2, null);
-                if ($expMonth) {
-                    $request['paymentInformation']['tokenizedCard']['expirationMonth'] = $expMonth;
-                }
-                if ($expYear) {
-                    $request['paymentInformation']['tokenizedCard']['expirationYear'] = $expYear;
-                }
-                // Also include card expiration under card node to satisfy builders expecting it
-                if ($expMonth) {
-                    $request['paymentInformation']['card']['expirationMonth'] = $expMonth;
-                }
-                if ($expYear) {
-                    $request['paymentInformation']['card']['expirationYear'] = $expYear;
-                }
-            }
+                "customer" => [
+                    'id' => $token,
+                  ]
+                ];
         }
 
         return $request;

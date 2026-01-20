@@ -11,34 +11,19 @@
             <argument name="isAdmin" xsi:type="boolean">true</argument>
         </arguments>
     </type>
-
     <type name="CyberSource\Payment\Controller\Adminhtml\CaptureContextRequest">
         <arguments>
-            <argument name="sessionManager" xsi:type="object">Magento\Backend\Model\Session\Quote</argument>
+            <argument name="commandManager" xsi:type="object">CyberSourcePaymentCommandManager</argument>
         </arguments>
     </type>
-
+    <type name="CyberSource\Payment\Controller\Adminhtml\CaptureContextRequest">
+        <arguments>
+            <argument name="commandManager" xsi:type="object">CyberSourcePaymentCommandManager</argument>
+        </arguments>
+    </type>
     <type name="CyberSource\Payment\Controller\Adminhtml\TransientDataRetrival">
         <arguments>
-            <argument name="sessionManager" xsi:type="object">Magento\Backend\Model\Session\Quote</argument>
-        </arguments>
-    </type>
-
-    <type name="CyberSource\Payment\Controller\Adminhtml\PaSetup">
-        <arguments>
-            <argument name="sessionManager" xsi:type="object">Magento\Backend\Model\Session\Quote</argument>
-        </arguments>
-    </type>
-
-    <type name="CyberSourcePaymentGatewayFacade">
-        <arguments>
-            <argument name="formBlockType" xsi:type="string">CyberSource\Payment\Block\Adminhtml\Order\Create\Billing\Method\Form</argument>
-        </arguments>
-    </type>
-
-    <type name="CyberSourcePaymentCreditCardVaultFacade">
-        <arguments>
-            <argument name="formBlockType" xsi:type="string">CyberSource\Payment\Block\Adminhtml\Order\Create\Billing\Method\Form</argument>
+            <argument name="commandManager" xsi:type="object">CyberSourcePaymentCommandManager</argument>
         </arguments>
     </type>
 </config>

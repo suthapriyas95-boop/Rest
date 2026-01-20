@@ -9,7 +9,6 @@
         <referenceContainer name="left">
             <referenceContainer name="payment_additional_info">
                 <block class="CyberSource\Payment\Block\Adminhtml\Order\View\View" name="sales_order_view_payer_auth" template="order/view/payer_auth.phtml"/>
-                <block class="CyberSource\Payment\Block\Adminhtml\Info" name="cybersource_payment_info" template="order/view/payment.phtml"/>
             </referenceContainer>
         </referenceContainer>
     </body>
