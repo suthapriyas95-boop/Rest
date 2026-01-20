@@ -21,7 +21,7 @@ class PaSetup extends \Magento\Backend\App\Action
     private $formKeyValidator;
     private $logger;
     private $sessionStorage;
-    private $checkoutSession;
+        private $sessionManager;
 
     public function __construct(
         \Magento\Backend\App\Action\Context $context,
@@ -31,7 +31,7 @@ class PaSetup extends \Magento\Backend\App\Action
         \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator,
         \CyberSource\Payment\Model\LoggerInterface $logger,
         \Magento\Framework\Session\StorageInterface $sessionStorage,
-        \Magento\Checkout\Model\Session $checkoutSession,
+        \Magento\Framework\Session\SessionManagerInterface $sessionManager,
         \CyberSource\Payment\Gateway\Helper\SubjectReader $subjectReader
     ) {
         parent::__construct($context);
@@ -41,14 +41,14 @@ class PaSetup extends \Magento\Backend\App\Action
         $this->formKeyValidator = $formKeyValidator;
         $this->logger = $logger;
         $this->sessionStorage = $sessionStorage;
-        $this->checkoutSession = $checkoutSession;
+        $this->sessionManager = $sessionManager;
         $this->subjectReader = $subjectReader;
     }
 
     public function execute()
     {
         $resultJson = $this->jsonFactory->create();
-        $quote = $this->checkoutSession->getQuote();
+        $quote = $this->sessionManager->getQuote();
         try {
             if (!$this->getRequest()->isPost()) {
                 throw new \Magento\Framework\Exception\LocalizedException(__('Wrong method.'));

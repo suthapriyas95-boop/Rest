@@ -37,6 +37,13 @@ $tokens = $helper->getTokens($method->getStore());
         </div>
     </div>
 </fieldset>
+
+<?php echo $this->getLayout()->createBlock('Magento\Framework\View\Element\Template')
+    ->setTemplate('CyberSource_Payment::device_data_collection.phtml')
+    ->toHtml(); ?>
+<?php echo $this->getLayout()->createBlock('Magento\Framework\View\Element\Template')
+    ->setTemplate('CyberSource_Payment::stepup_authentication.phtml')
+    ->toHtml(); ?>
 <script>
     require([
         'prototype',

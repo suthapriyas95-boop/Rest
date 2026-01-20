@@ -82,7 +82,7 @@ class TransientDataRetrival extends \Magento\Backend\App\Action
             $this->sessionStorage->setData('browser_details', $browserDetails);
 
             $decoded_transient_token = json_decode($this->urlDecoder->decode(explode('.', $data)[1]), true);
-            $quote = $this->checkoutSession->getQuote();
+            $quote = $this->sessionManager->getQuote();
             $quote->getPayment()->setAdditionalInformation("paymentToken", base64_encode($data));
             $this->sessionStorage->setData("paymentToken", base64_encode($data));
             if (isset($decoded_transient_token['content']['processingInformation']['paymentSolution']['value'])) {
@@ -146,43 +146,12 @@ class TransientDataRetrival extends \Magento\Backend\App\Action
                     $SetUpResult->get()
                 ));
             } else {
-                $this->logger->debug("inside else block");
-
-                $quote->setPaymentMethod(ConfigProvider::CODE);
-                $quote->setInventoryProcessed(false);
-                $quote->getPayment()->importData(['method' => ConfigProvider::CODE]);
-                $quote->collectTotals();
+                $this->logger->debug("admin transient data saved");
                 $this->quoteRepository->save($quote);
-
-                $this->checkoutSession->setLastSuccessQuoteId($quote->getId());
-                $this->checkoutSession->setLastQuoteId($quote->getId());
-                $this->checkoutSession->clearHelperData();
-
-                $order = $this->quoteManagement->submit($quote);
-                $this->eventManager->dispatch('cybersource_quote_submit_success', ['order' => $order, 'quote' => $quote]);
-
-                $this->checkoutSession->setLastOrderId($order->getId());
-                $this->checkoutSession->setLastRealOrderId($order->getIncrementId());
-                $this->checkoutSession->setLastOrderStatus($order->getStatus());
-
-                $successValidator = $this->_objectManager->get(\Magento\Checkout\Model\Session\SuccessValidator::class);
-
-                if (!$successValidator->isValid()) {
-                    $resultData = [
-                        'status' => 500,
-                        'message' => 'Unable to place order. Please try again.',
-                        'redirect_url' => $this->_url->getUrl($this->paymentFailureRouteProvider->getFailureRoutePath())
-                    ];
-                } else {
-                    $resultData = [
-                        'status' => 200,
-                        'message' => 'Your order has been created successfully.',
-                        'redirect_url' => $this->_url->getUrl('checkout/onepage/success')
-                    ];
-                }
-
-                $result->setData($resultData);
-                $this->quoteRepository->save($quote);
+                $result->setData([
+                    'status' => 200,
+                    'message' => 'Payment details collected successfully.'
+                ]);
             }
         } catch (\Exception $e) {
             $this->logger->critical($e->getMessage(), ['exception' => $e]);

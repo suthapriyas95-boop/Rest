@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace CyberSource\Payment\Helper;
 
 use Magento\Sales\Api\OrderRepositoryInterface;
+use CyberSource\Payment\Model\Ui\ConfigProvider;
 
 class Data extends AbstractDataBuilder
 {
@@ -33,6 +34,11 @@ class Data extends AbstractDataBuilder
      * @var \CyberSource\Payment\Model\Config
      */
     private $gatewayConfig;
+
+    /**
+     * @var \CyberSource\Payment\Model\PaymentTokenManagement
+     */
+    private $paymentTokenManagement;
 
     /**
      * @var array
@@ -87,6 +93,7 @@ class Data extends AbstractDataBuilder
         \Magento\Backend\Model\Auth $auth,
         \Magento\GiftMessage\Model\Message $giftMessage,
         \Magento\Framework\Serialize\SerializerInterface $serializer,
+        \CyberSource\Payment\Model\PaymentTokenManagement $paymentTokenManagement,
         $additionalInfoKeys = []
     ) {
         parent::__construct(
@@ -104,6 +111,7 @@ class Data extends AbstractDataBuilder
         $this->urlBuilder = $backendUrl;
         $this->gatewayConfig = $config;
         $this->serializer = $serializer;
+        $this->paymentTokenManagement = $paymentTokenManagement;
 
         $this->includeAdditionalPaymentKeys = array_merge(
             $this->includeAdditionalPaymentKeys,
@@ -119,7 +127,41 @@ class Data extends AbstractDataBuilder
      */
     public function getTokens($storeId)
     {
-        return [];
+        try {
+            $customerId = $this->order->getQuote()->getCustomerId();
+            if (!$customerId) {
+                return [];
+            }
+
+            $tokens = $this->paymentTokenManagement->getAvailableTokens(
+                (int)$customerId,
+                ConfigProvider::CODE
+            );
+
+            $result = [];
+            foreach ($tokens as $token) {
+                $masked = null;
+                $details = $token->getTokenDetails();
+                if ($details) {
+                    try {
+                        $decoded = $this->serializer->unserialize($details);
+                        if (is_array($decoded)) {
+                            $masked = $decoded['maskedCC'] ?? $decoded['masked_pan'] ?? null;
+                        }
+                    } catch (\Exception $e) {
+                        $masked = null;
+                    }
+                }
+                $result[] = [
+                    'token_id' => $token->getPublicHash(),
+                    'cc_number' => $masked ?: 'xxxx'
+                ];
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     /**

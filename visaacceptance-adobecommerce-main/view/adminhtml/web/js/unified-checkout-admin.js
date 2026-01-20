@@ -142,6 +142,10 @@ define([
                                         alert(response.message || 'Unable to place order.');
                                         return;
                                     }
+                                    if (response && (response.deviceDataCollectionURL || (response.parameters && response.parameters.cca))) {
+                                        self.handlePayerAuth(response, submitAfter);
+                                        return;
+                                    }
                                     // mark transient as ready for later submit
                                     window.__cybersource_transient_ready = true;
                                     if (submitAfter) {
@@ -166,6 +170,96 @@ define([
                     console.error('[UC Admin] capture context fetch failed');
                     alert('Unable to initialize Unified Checkout.');
                 });
+        },
+
+        handlePayerAuth: function (response, submitAfter) {
+            var cca = (response && response.parameters && response.parameters.cca) ? response.parameters.cca : response;
+            var deviceUrl = cca.deviceDataCollectionURL || response.deviceDataCollectionURL;
+            var accessToken = cca.accessToken || response.accessToken;
+            var stepUpUrl = cca.stepUpUrl || response.stepUpUrl;
+            var payload = cca.Payload || response.Payload || null;
+
+            var collectionForm = document.getElementById('cardinal_collection_form');
+            var collectionInput = document.getElementById('cardinal_collection_form_input');
+            var stepUpForm = document.getElementById('step-up-form');
+            var stepUpInput = document.getElementById('step-up-form-input');
+            var stepUpIframe = document.getElementById('step-up-iframe');
+            var overlay = document.getElementById('overlay');
+
+            if (!collectionForm || !stepUpForm) {
+                alert('Payment authentication forms not available. Please refresh.');
+                return;
+            }
+
+            if (deviceUrl && accessToken) {
+                collectionForm.setAttribute('action', deviceUrl);
+                collectionInput.value = accessToken;
+                collectionForm.submit();
+            }
+
+            if (stepUpUrl && accessToken) {
+                stepUpForm.setAttribute('action', stepUpUrl);
+                stepUpInput.value = accessToken;
+
+                // Size iframe if payload present
+                if (payload && stepUpIframe) {
+                    try {
+                        var decoded = JSON.parse(atob(payload));
+                        var size = decoded.challengeWindowSize || '03';
+                        stepUpIframe.width = (size === '01') ? '250px' : (size === '02') ? '390px' : (size === '04') ? '600px' : '500px';
+                        stepUpIframe.height = (size === '01') ? '400px' : (size === '02') ? '400px' : (size === '04') ? '400px' : '600px';
+                    } catch (e) {
+                        stepUpIframe.width = '400px';
+                        stepUpIframe.height = '400px';
+                    }
+                }
+
+                if (stepUpIframe && overlay) {
+                    stepUpIframe.style.display = 'block';
+                    overlay.style.display = 'block';
+                }
+
+                stepUpForm.submit();
+
+                var checkResult = setInterval(function () {
+                    try {
+                        var len = stepUpIframe && stepUpIframe.contentWindow ? stepUpIframe.contentWindow.length : 1;
+                        if (len !== 1) {
+                            clearInterval(checkResult);
+                            if (stepUpIframe && overlay) {
+                                stepUpIframe.style.display = 'none';
+                                overlay.style.display = 'none';
+                            }
+                            window.__cybersource_transient_ready = true;
+                            if (submitAfter) {
+                                if (window.order && typeof order._realSubmit === 'function') {
+                                    order._realSubmit();
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        clearInterval(checkResult);
+                        if (stepUpIframe && overlay) {
+                            stepUpIframe.style.display = 'none';
+                            overlay.style.display = 'none';
+                        }
+                        window.__cybersource_transient_ready = true;
+                        if (submitAfter) {
+                            if (window.order && typeof order._realSubmit === 'function') {
+                                order._realSubmit();
+                            }
+                        }
+                    }
+                }, 2000);
+                return;
+            }
+
+            window.__cybersource_transient_ready = true;
+            if (submitAfter) {
+                if (window.order && typeof order._realSubmit === 'function') {
+                    order._realSubmit();
+                }
+            }
         },
 
         launchUCAndSubmit: function () {

@@ -1,0 +1,21 @@
+<?php
+/** @var \CyberSource\Payment\Block\Adminhtml\Info $block */
+$info = $block->getInfo();
+if (!$info || $info->getMethod() !== 'unifiedcheckout') {
+    return;
+}
+?>
+<div class="admin__page-section-item order-payment-method">
+    <div class="admin__page-section-item-title">
+        <span class="title"><?php echo $block->escapeHtml(__('Payment Information')); ?></span>
+    </div>
+    <div class="admin__page-section-item-content">
+        <div><?php echo $block->escapeHtml(__('Payment Method: %1', 'Visa Acceptance')); ?></div>
+        <?php if ($cardType = $info->getAdditionalInformation('cardType')): ?>
+            <div><?php echo $block->escapeHtml(__('Card Type: %1', $cardType)); ?></div>
+        <?php endif; ?>
+        <?php if ($maskedPan = $info->getAdditionalInformation('maskedPan')): ?>
+            <div><?php echo $block->escapeHtml(__('Card Number: %1', $maskedPan)); ?></div>
+        <?php endif; ?>
+    </div>
+</div>
