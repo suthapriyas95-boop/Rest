@@ -89,6 +89,7 @@ class TransientDataRetrival extends Action
         $result = $this->resultJsonFactory->create();
 
         try {
+            $this->logger->info('Admin transient token request received.');
             if (!$this->getRequest()->isPost()) {
                 throw new \Magento\Framework\Exception\LocalizedException(__('Wrong method.'));
             }
@@ -102,6 +103,7 @@ class TransientDataRetrival extends Action
             if (!$quote || !$quote->getId()) {
                 throw new \Magento\Framework\Exception\LocalizedException(__('Unable to load admin quote.'));
             }
+            $this->logger->info('Admin transient token quote loaded.', ['quote_id' => $quote->getId()]);
 
             $decodedToken = [];
             $tokenParts = explode('.', $data);
@@ -121,6 +123,7 @@ class TransientDataRetrival extends Action
                 self::COMMAND_CODE,
                 $quote->getPayment()
             );
+            $this->logger->info('Admin transient token command executed.');
 
             $response = $commandResult->get();
             $expMonth = $response['paymentInformation']['card']['expirationMonth'] ?? null;

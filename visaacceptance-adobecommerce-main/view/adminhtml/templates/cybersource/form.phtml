@@ -3,7 +3,48 @@
  * Copyright © 2018 CyberSource. All rights reserved.
  * See accompanying LICENSE.txt for applicable terms of use and license.
  */
+$code = $block->escapeHtml($block->getMethodCode());
+$controller = $block->escapeHtml($block->getRequest()->getControllerName());
+
+/** @var CyberSource\Payment\Helper\Data $helper */
+$helper = $this->helper('CyberSource\Payment\Helper\Data');
+$orderUrl = $block->escapeUrl($helper->getPlaceOrderAdminUrl());
+$captureContextUrl = $block->escapeUrl($block->getUrl('cybersourceadmin/capturecontextrequest', [
+	'_secure' => $block->getRequest()->isSecure()
+]));
+$transientUrl = $block->escapeUrl($block->getUrl('cybersourceadmin/transientdataretrival', [
+	'_secure' => $block->getRequest()->isSecure()
+]));
 ?>
-<?php
-// Reuse the existing admin payment form template.
-include $block->getTemplateFile('CyberSource_Payment::cybersource/info.phtml');
+<fieldset class="admin__fieldset payment-method" id="payment_form_<?= $escaper->escapeHtmlAttr($code) ?>">
+	<div id="buttonPaymentListContainer"></div>
+	<div id="embeddedPaymentContainer"></div>
+	<input type="hidden" id="cybersource-payment-token" name="payment[additional_data][paymentToken]" value="" />
+</fieldset>
+
+<script>
+	if (window.console && console.log) {
+		console.log('[UC Admin] form template loaded', '<?= $escaper->escapeJs($code) ?>');
+		console.log('[UC Admin] captureContextUrl', '<?= $escaper->escapeJs($captureContextUrl) ?>');
+		console.log('[UC Admin] transientUrl', '<?= $escaper->escapeJs($transientUrl) ?>');
+	}
+	require([
+		'prototype',
+		'Magento_Sales/order/create/scripts',
+		'Magento_Sales/order/create/form',
+		'CyberSource_Payment/js/cybersource'
+	], function () {
+		if (window.console && console.log) {
+			console.log('[UC Admin] JS module loaded, initializing');
+		}
+		new Cybersource(
+			'<?= $escaper->escapeJs($code) ?>',
+			'<?= $escaper->escapeJs($controller) ?>',
+			'<?= $escaper->escapeJs($orderUrl) ?>',
+			'<?= $block->escapeUrl($block->getUrl('*/*/save', ['_secure' => $block->getRequest()->isSecure()])) ?>',
+			'<?= $escaper->escapeJs($captureContextUrl) ?>',
+			'<?= $escaper->escapeJs($transientUrl) ?>',
+			'#cybersource-payment-token'
+		);
+	});
+</script>

@@ -15,22 +15,22 @@
 
     window.Cybersource = Class.create();
     Cybersource.prototype = {
-        initialize : function (methodCode, controller, orderSaveUrl, nativeAction, captureContextUrl, tokenFieldSelector) {
-            var prepare = function (event, method) {
-                if (method === 'unifiedcheckout') {
-                    this.preparePayment();
-                } else {
-                    jQuery('#edit_form')
-                    .off('submitOrder.cybersource');
-                }
-            };
+        initialize : function (methodCode, controller, orderSaveUrl, nativeAction, captureContextUrl, transientUrl, tokenFieldSelector) {
             this.iframeId = 'iframeId';
             this.controller = controller;
             this.orderSaveUrl = orderSaveUrl;
             this.nativeAction = nativeAction;
             this.captureContextUrl = captureContextUrl;
+            this.transientUrl = transientUrl;
             this.tokenFieldSelector = tokenFieldSelector;
             this.code = methodCode;
+            if (window.console && console.log) {
+                console.log('[UC Admin] init', {
+                    code: this.code,
+                    captureContextUrl: this.captureContextUrl,
+                    transientUrl: this.transientUrl
+                });
+            }
             this.inputs = ['cc_type', 'cc_number', 'expiration', 'expiration_yr', 'cc_cid'];
             this.headers = [];
             this.isValid = true;
@@ -45,14 +45,45 @@
 
             this.onSubmitAdminOrder = this.submitAdminOrder.bindAsEventListener(this);
 
-            jQuery('#edit_form').on('changePaymentMethod', prepare.bind(this));
+            jQuery('#edit_form').on('changePaymentMethod', function (event, method) {
+                if (method === this.code) {
+                    this.showPaymentForm();
+                    this.preparePayment();
+                } else {
+                    jQuery('#edit_form').off('submitOrder.cybersource');
+                }
+            }.bind(this));
 
-            jQuery('#edit_form').trigger(
-                'changePaymentMethod',
-                [
-                jQuery('#edit_form').find(':radio[name="payment[method]"]:checked').val()
-                ]
-            );
+            var attempts = 0;
+            var tryInit = function () {
+                var current = jQuery('#edit_form').find(':radio[name="payment[method]"]:checked').val();
+                if (current === this.code) {
+                    if (window.console && console.log) {
+                        console.log('[UC Admin] method selected, preparing payment');
+                    }
+                    this.showPaymentForm();
+                    this.preparePayment();
+                    return true;
+                }
+                attempts += 1;
+                if (attempts >= 10) {
+                    return true;
+                }
+                return false;
+            }.bind(this);
+
+            var timer = window.setInterval(function () {
+                if (tryInit()) {
+                    window.clearInterval(timer);
+                }
+            }, 500);
+        },
+
+        showPaymentForm : function () {
+            jQuery('#payment_form_' + this.code).show();
+            if (window.console && console.log) {
+                console.log('[UC Admin] show payment form', '#payment_form_' + this.code);
+            }
         },
 
         validate : function () {
@@ -92,9 +123,19 @@
 
         initUnifiedCheckout : function () {
             if (this.ucInitialized || !this.captureContextUrl) {
+                if (window.console && console.log) {
+                    console.log('[UC Admin] initUnifiedCheckout skipped', {
+                        ucInitialized: this.ucInitialized,
+                        captureContextUrl: this.captureContextUrl
+                    });
+                }
                 return;
             }
             this.ucInitialized = true;
+
+            if (window.console && console.log) {
+                console.log('[UC Admin] requesting capture context', this.captureContextUrl);
+            }
 
             jQuery('body').trigger('processStart');
             jQuery.ajax({
@@ -102,6 +143,9 @@
                 url: this.captureContextUrl,
                 data: {}
             }).done(function (response) {
+                if (window.console && console.log) {
+                    console.log('[UC Admin] capture context response', response);
+                }
                 if (!response || response.error_msg) {
                     this.showError(response && response.error_msg ? response.error_msg : 'Unable to load payment form.');
                     return;
@@ -119,6 +163,9 @@
                     .then(function (res) { return res.text(); })
                     .then(function (content) { return this.generateSRI(content); }.bind(this))
                     .then(function (hash) {
+                        if (window.console && console.log) {
+                            console.log('[UC Admin] UC library loaded', libraryUrl);
+                        }
                         require.config({
                             map: {
                                 '*': {
@@ -152,9 +199,15 @@
                         }.bind(this));
                     }.bind(this))
                     .catch(function () {
+                        if (window.console && console.log) {
+                            console.log('[UC Admin] UC library load failed');
+                        }
                         this.showError('Unable to load payment form.');
                     }.bind(this));
             }.bind(this)).fail(function () {
+                if (window.console && console.log) {
+                    console.log('[UC Admin] capture context request failed');
+                }
                 this.showError('Unable to load payment form.');
             }.bind(this)).always(function () {
                 jQuery('body').trigger('processStop');
@@ -171,11 +224,41 @@
                     return up.show(showArgs);
                 })
                 .then(function (tt) {
-                    self.setPaymentToken(tt);
+                    self.submitToken(tt);
                 })
                 .catch(function () {
                     self.showError('Unable to process your request. Please try again later.');
                 });
+        },
+
+        submitToken : function (tt) {
+            var self = this;
+            if (!this.transientUrl) {
+                self.showError('Unable to process payment token.');
+                return;
+            }
+            if (window.console && console.log) {
+                console.log('[UC Admin] submit token');
+            }
+            jQuery.ajax({
+                method: 'POST',
+                url: this.transientUrl,
+                data: { transientToken: tt }
+            }).done(function (response) {
+                if (window.console && console.log) {
+                    console.log('[UC Admin] token response', response);
+                }
+                if (response && response.success) {
+                    self.setPaymentToken(tt);
+                } else {
+                    self.showError((response && response.message) ? response.message : 'Unable to process payment token.');
+                }
+            }).fail(function () {
+                if (window.console && console.log) {
+                    console.log('[UC Admin] token request failed');
+                }
+                self.showError('Unable to process payment token.');
+            });
         },
 
         setPaymentToken : function (tt) {

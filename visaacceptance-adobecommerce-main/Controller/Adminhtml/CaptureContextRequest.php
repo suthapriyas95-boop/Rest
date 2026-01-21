@@ -98,6 +98,7 @@ class CaptureContextRequest extends Action
         $result = $this->resultJsonFactory->create();
 
         try {
+            $this->logger->info('Admin capture context request received.');
             if (!$this->getRequest()->isPost()) {
                 throw new \Magento\Framework\Exception\LocalizedException(__('Wrong method.'));
             }
@@ -109,11 +110,13 @@ class CaptureContextRequest extends Action
                     __('Something went wrong. Please try again.')
                 );
             }
+            $this->logger->info('Admin capture context quote loaded.', ['quote_id' => $quote->getId()]);
 
             $commandResult = $this->commandManager->executeByCode(
                 self::COMMAND_CODE,
                 $quote->getPayment()
             )->get();
+            $this->logger->info('Admin capture context command executed.');
 
             $token = $commandResult['response'] ?? null;
             if (is_array($token) && isset($token['rmsg']) && $token['rmsg'] === 'Authentication Failed') {
